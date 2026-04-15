@@ -37,6 +37,13 @@
     <main class="main">
       <section class="panel" role="tabpanel" id="panel-coverage" aria-labelledby="tab-coverage">
         <div class="metric-cards" id="metric-cards"></div>
+        <div class="card chart-card" id="trend-card" style="display:none">
+          <h2 class="card-title">Metrics over time</h2>
+          <div class="chart-container">
+            <canvas id="trend-chart" width="800" height="240"></canvas>
+          </div>
+          <div class="chart-legend" id="trend-legend"></div>
+        </div>
         <div class="card">
           <h2 class="card-title">File coverage heatmap</h2>
           <div id="heatmap"></div>

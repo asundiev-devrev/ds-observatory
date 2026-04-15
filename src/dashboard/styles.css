@@ -156,6 +156,25 @@ ul { list-style: none; }
   color: hsl(var(--text-color-tertiary));
   white-space: nowrap;
 }
+.header-meta .snapshot-select {
+  font-family: var(--font-text);
+  font-size: 12px;
+  font-variation-settings: 'wght' 540;
+  color: hsl(var(--text-color-primary));
+  background: hsl(var(--bg-layer-01));
+  border: 1px solid hsl(var(--border-outline-01));
+  border-radius: 8px;
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: border-color 0.12s;
+}
+.header-meta .snapshot-select:hover {
+  border-color: hsl(var(--border-field-idle));
+}
+.header-meta .snapshot-select:focus-visible {
+  outline: 2px solid hsl(var(--shuiguo-500));
+  outline-offset: -2px;
+}
 
 /* ---- Tab Bar (matches real DevRev tab pattern) ---- */
 .tab-bar {

@@ -13,6 +13,7 @@ export async function reportCommand(options: ReportOptions): Promise<void> {
 
   const analytics = await readData<LibraryAnalyticsData>(dataDir, 'library-analytics.json');
   const audit = await readData<HotFileAuditData>(dataDir, 'hot-file-audit.json');
+  const canonical = await readData<Record<string, unknown>>(dataDir, 'canonical-components.json');
 
   if (!analytics || !audit) {
     console.error('No data found. Run `ds-observatory collect` first.');
@@ -34,7 +35,8 @@ export async function reportCommand(options: ReportOptions): Promise<void> {
       `<script>
 window.__DS_OBSERVATORY_DATA__ = {
   analytics: ${JSON.stringify(analytics)},
-  audit: ${JSON.stringify(audit)}
+  audit: ${JSON.stringify(audit)},
+  canonical: ${JSON.stringify(canonical)}
 };
 </script>
 <script>${js}</script>`,
