@@ -1,0 +1,21 @@
+{
+  "component_usages": [
+    {
+      "component": { "key": "btn-001", "name": "Button" },
+      "usages": [
+        { "file_key": "file-a", "file_name": "App Designs", "insertions": 50, "detachments": 3 },
+        { "file_key": "file-b", "file_name": "Settings Page", "insertions": 20, "detachments": 1 }
+      ]
+    },
+    {
+      "component": { "key": "badge-001", "name": "Badge" },
+      "usages": [
+        { "file_key": "file-a", "file_name": "App Designs", "insertions": 30, "detachments": 0 }
+      ]
+    }
+  ],
+  "weekly_trends": [
+    { "week": "2026-W10", "insertions": 100, "detachments": 4 },
+    { "week": "2026-W11", "insertions": 110, "detachments": 5 }
+  ]
+}

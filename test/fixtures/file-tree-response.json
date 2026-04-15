@@ -1,0 +1,35 @@
+{
+  "name": "Test Design File",
+  "lastModified": "2026-04-10T12:00:00Z",
+  "document": {
+    "id": "0:0",
+    "name": "Document",
+    "type": "DOCUMENT",
+    "children": [
+      {
+        "id": "1:0",
+        "name": "Page 1",
+        "type": "CANVAS",
+        "children": [
+          { "id": "2:1", "name": "Button", "type": "INSTANCE", "componentId": "comp-dls" },
+          { "id": "2:2", "name": "Badge", "type": "INSTANCE", "componentId": "comp-arcade" },
+          { "id": "2:3", "name": "Widget", "type": "INSTANCE", "componentId": "comp-other" },
+          { "id": "2:4", "name": "Broken", "type": "INSTANCE", "componentId": "comp-missing" },
+          { "id": "2:5", "name": "Custom Card", "type": "COMPONENT", "children": [
+            { "id": "3:1", "name": "bg", "type": "RECTANGLE" }
+          ]},
+          { "id": "2:6", "name": "Container", "type": "FRAME", "children": [
+            { "id": "3:2", "name": "Text", "type": "TEXT" },
+            { "id": "3:3", "name": "Icon", "type": "INSTANCE", "componentId": "comp-dls" }
+          ]},
+          { "id": "2:7", "name": "Group 1", "type": "GROUP" }
+        ]
+      }
+    ]
+  },
+  "components": {
+    "comp-dls": { "key": "k1", "name": "Button", "description": "", "file_key": "rNeWrFnPT8J903T2jon2oG" },
+    "comp-arcade": { "key": "k2", "name": "Badge", "description": "", "file_key": "loThitjZGdpisyETz5avvz" },
+    "comp-other": { "key": "k3", "name": "Widget", "description": "", "file_key": "other-lib-key" }
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "files": [
+    { "key": "file-hot", "name": "Active Feature", "last_modified": "2026-04-10T12:00:00Z" },
+    { "key": "file-warm", "name": "Recent Work", "last_modified": "2026-03-20T12:00:00Z" },
+    { "key": "file-cold", "name": "Old Designs", "last_modified": "2025-01-01T12:00:00Z" }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "name": "ds-observatory",
+  "version": "0.1.0",
+  "description": "Design system observability — Figma component usage analytics",
+  "type": "module",
+  "bin": {
+    "ds-observatory": "./dist/cli/index.js"
+  },
+  "scripts": {
+    "dev": "tsx src/cli/index.ts",
+    "build": "tsc",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "tsx": "^4.21.0",
+    "typescript": "^6.0.2",
+    "vitest": "^4.1.4"
+  }
+}

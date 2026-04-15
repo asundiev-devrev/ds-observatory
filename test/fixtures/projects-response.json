@@ -1,0 +1,6 @@
+{
+  "projects": [
+    { "id": 100, "name": "Product Design" },
+    { "id": 200, "name": "Archive" }
+  ]
+}

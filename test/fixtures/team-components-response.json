@@ -1,0 +1,9 @@
+{
+  "meta": {
+    "components": [
+      { "key": "btn-001", "name": "Button", "description": "Primary action button", "file_key": "rNeWrFnPT8J903T2jon2oG" },
+      { "key": "badge-001", "name": "Badge", "description": "Status indicator", "file_key": "rNeWrFnPT8J903T2jon2oG" },
+      { "key": "arc-btn-001", "name": "Button", "description": "Arcade button", "file_key": "loThitjZGdpisyETz5avvz" }
+    ]
+  }
+}

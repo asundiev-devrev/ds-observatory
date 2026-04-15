@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Design System Observatory</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app">
+    <header class="header">
+      <div class="header-content">
+        <div class="header-title-group">
+          <h1 class="header-title">Design System Observatory</h1>
+          <p class="header-subtitle">Figma design usage analytics</p>
+        </div>
+        <div class="header-meta" id="header-meta"></div>
+      </div>
+    </header>
+
+    <nav class="tab-bar" role="tablist" aria-label="Dashboard sections">
+      <button class="tab" role="tab" aria-selected="true" aria-controls="panel-coverage" id="tab-coverage" tabindex="0">
+        Design coverage
+      </button>
+      <button class="tab" role="tab" aria-selected="false" aria-controls="panel-inventory" id="tab-inventory" tabindex="-1">
+        Component inventory
+      </button>
+      <!-- File health tab hidden for now — focusing on higher-level views -->
+      <button class="tab" role="tab" aria-selected="false" aria-controls="panel-health" id="tab-health" tabindex="-1" style="display:none">
+        File health
+      </button>
+      <button class="tab" role="tab" aria-selected="false" aria-controls="panel-migration" id="tab-migration" tabindex="-1">
+        Migration tracker
+      </button>
+    </nav>
+
+    <main class="main">
+      <section class="panel" role="tabpanel" id="panel-coverage" aria-labelledby="tab-coverage">
+        <div class="metric-cards" id="metric-cards"></div>
+        <div class="card">
+          <h2 class="card-title">File coverage heatmap</h2>
+          <div id="heatmap"></div>
+        </div>
+      </section>
+
+      <section class="panel hidden" role="tabpanel" id="panel-inventory" aria-labelledby="tab-inventory" hidden>
+        <div class="filter-bar" id="filter-bar" role="toolbar" aria-label="Filter components">
+          <button class="pill active" data-filter="all">All</button>
+          <button class="pill" data-filter="dls">DLS</button>
+          <button class="pill" data-filter="arcade">Arcade</button>
+          <button class="pill" data-filter="both">Overlap</button>
+        </div>
+        <div class="card table-card">
+          <div class="table-scroll">
+            <table class="data-table" id="inventory-table">
+              <thead>
+                <tr>
+                  <th class="sortable" data-sort="name">Component name <span class="sort-icon"></span></th>
+                  <th class="sortable" data-sort="library">Library <span class="sort-icon"></span></th>
+                  <th class="sortable" data-sort="insertions">Insertions <span class="sort-icon"></span></th>
+                  <th class="sortable" data-sort="files">Files used in <span class="sort-icon"></span></th>
+                </tr>
+              </thead>
+              <tbody id="inventory-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel hidden" role="tabpanel" id="panel-health" aria-labelledby="tab-health" hidden>
+        <div class="file-selector" id="file-selector"></div>
+        <div class="file-detail" id="file-detail"></div>
+      </section>
+
+      <section class="panel hidden" role="tabpanel" id="panel-migration" aria-labelledby="tab-migration" hidden>
+        <div class="card chart-card">
+          <h2 class="card-title">Arcade adoption over time</h2>
+          <div class="chart-container">
+            <canvas id="migration-chart" width="800" height="240"></canvas>
+          </div>
+        </div>
+        <div class="card">
+          <h2 class="card-title">Component migration progress</h2>
+          <div class="table-scroll">
+            <table class="data-table" id="migration-table">
+              <thead>
+                <tr>
+                  <th>Component</th>
+                  <th>DLS insertions</th>
+                  <th>Arcade insertions</th>
+                  <th>Adoption</th>
+                </tr>
+              </thead>
+              <tbody id="migration-body"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="migration-cols">
+          <div class="card">
+            <h2 class="card-title">DLS-only components</h2>
+            <p class="card-desc">Candidates for Arcade theme creation</p>
+            <ul class="component-list" id="dls-only-list"></ul>
+          </div>
+          <div class="card">
+            <h2 class="card-title">Per-file DLS dependency</h2>
+            <p class="card-desc">Sorted by highest DLS ratio</p>
+            <div id="dls-ratio-bars"></div>
+          </div>
+        </div>
+      </section>
+
+      <div class="empty-state hidden" id="empty-state">
+        <div class="empty-icon">
+          <svg width="64" height="64" viewBox="0 0 64 64" fill="none" aria-hidden="true">
+            <rect x="8" y="16" width="48" height="36" rx="4" stroke="#C9C8C2" stroke-width="2" fill="none"/>
+            <path d="M8 24h48" stroke="#C9C8C2" stroke-width="2"/>
+            <circle cx="16" cy="20" r="2" fill="#E0DFD9"/>
+            <circle cx="22" cy="20" r="2" fill="#E0DFD9"/>
+            <circle cx="28" cy="20" r="2" fill="#E0DFD9"/>
+            <rect x="20" y="32" width="24" height="3" rx="1.5" fill="#E0DFD9"/>
+            <rect x="24" y="39" width="16" height="3" rx="1.5" fill="#EEEDEA"/>
+          </svg>
+        </div>
+        <h2 class="empty-title">No data yet</h2>
+        <p class="empty-desc">Run <code>ds-observatory collect</code> to gather Figma usage data.</p>
+      </div>
+    </main>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>
