@@ -162,6 +162,25 @@ ul { list-style: none; }
   color: hsl(var(--text-color-tertiary));
   white-space: nowrap;
 }
+.header-meta .snapshot-select {
+  font-family: var(--font-text);
+  font-size: 12px;
+  font-variation-settings: 'wght' 540;
+  color: hsl(var(--text-color-primary));
+  background: hsl(var(--bg-layer-01));
+  border: 1px solid hsl(var(--border-outline-01));
+  border-radius: 8px;
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: border-color 0.12s;
+}
+.header-meta .snapshot-select:hover {
+  border-color: hsl(var(--border-field-idle));
+}
+.header-meta .snapshot-select:focus-visible {
+  outline: 2px solid hsl(var(--shuiguo-500));
+  outline-offset: -2px;
+}
 
 /* ---- Tab Bar (matches real DevRev tab pattern) ---- */
 .tab-bar {
@@ -784,6 +803,13 @@ ul { list-style: none; }
     <main class="main">
       <section class="panel" role="tabpanel" id="panel-coverage" aria-labelledby="tab-coverage">
         <div class="metric-cards" id="metric-cards"></div>
+        <div class="card chart-card" id="trend-card" style="display:none">
+          <h2 class="card-title">Metrics over time</h2>
+          <div class="chart-container">
+            <canvas id="trend-chart" width="800" height="240"></canvas>
+          </div>
+          <div class="chart-legend" id="trend-legend"></div>
+        </div>
         <div class="card">
           <h2 class="card-title">File coverage heatmap</h2>
           <div id="heatmap"></div>
@@ -903,6 +929,8 @@ window.__DS_OBSERVATORY_DATA__ = {
   var state = {
     analytics: null,
     audit: null,
+    canonical: null,
+    snapshots: [],       // { timestamp, analytics, audit } sorted oldest→newest
     inventorySort: { key: 'insertions', dir: 'desc' },
     inventoryFilter: 'all',
     selectedFileKey: null,
@@ -922,6 +950,40 @@ window.__DS_OBSERVATORY_DATA__ = {
     ]).then(function (results) {
       return { analytics: results[0], audit: results[1], canonical: results[2] };
     });
+  }
+
+  function loadSnapshots() {
+    return fetch('/data/snapshots/').then(function (r) { return r.json(); }).then(function (files) {
+      // Group by truncated timestamp (strip milliseconds) so pairs match
+      var analytics = [];
+      var audits = [];
+      files.forEach(function (f) {
+        var m = f.match(/^(library-analytics|hot-file-audit)-(\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2})/);
+        if (!m) return;
+        if (m[1] === 'library-analytics') analytics.push({ ts: m[2], file: f });
+        else audits.push({ ts: m[2], file: f });
+      });
+
+      // Match pairs by truncated timestamp
+      var auditMap = {};
+      audits.forEach(function (a) { auditMap[a.ts] = a.file; });
+      var pairs = analytics
+        .filter(function (a) { return auditMap[a.ts]; })
+        .map(function (a) { return { ts: a.ts, analyticsFile: a.file, auditFile: auditMap[a.ts] }; })
+        .sort(function (a, b) { return a.ts < b.ts ? -1 : a.ts > b.ts ? 1 : 0; });
+
+      // Load each pair
+      return Promise.all(pairs.map(function (p) {
+        return Promise.all([
+          fetch('/data/snapshots/' + p.analyticsFile).then(function (r) { return r.json(); }),
+          fetch('/data/snapshots/' + p.auditFile).then(function (r) { return r.json(); }),
+        ]).then(function (results) {
+          // p.ts = "2026-04-14T16-59-03" → "2026-04-14 16:59"
+          var label = p.ts.slice(0, 10) + ' ' + p.ts.slice(11).replace(/-/g, ':').slice(0, 5);
+          return { timestamp: label, analytics: results[0], audit: results[1] };
+        });
+      }));
+    }).catch(function () { return []; });
   }
 
   // ---- Helpers ----
@@ -1170,6 +1232,119 @@ window.__DS_OBSERVATORY_DATA__ = {
     }
 
     return null; // unclassified
+  }
+
+  // ---- Trend Chart ----
+
+  function renderTrendChart(snapshots) {
+    var card = document.getElementById('trend-card');
+    var canvas = document.getElementById('trend-chart');
+    var legendEl = document.getElementById('trend-legend');
+    if (!canvas || !card) return;
+
+    // Compute metrics for each snapshot
+    var points = snapshots.map(function (snap) {
+      var m = computeMetrics(snap.analytics, snap.audit);
+      return { label: snap.timestamp, metrics: m };
+    }).filter(function (p) {
+      // Skip snapshots with no meaningful data
+      return p.metrics.totalComponentSurface > 100;
+    });
+
+    if (points.length < 2) {
+      card.style.display = 'none';
+      return;
+    }
+    card.style.display = '';
+
+    var series = [
+      { key: 'dsCoverage', label: 'DS coverage', color: COLORS.arcade },
+      { key: 'arcadeAdoption', label: 'Arcade adoption', color: COLORS.bang },
+      { key: 'detachRate', label: 'Detachment rate', color: COLORS.detached },
+    ];
+
+    // Legend
+    legendEl.innerHTML = '';
+    series.forEach(function (s) {
+      legendEl.appendChild(el('span', { className: 'legend-item' }, [
+        el('span', { className: 'legend-dot', style: 'background:' + s.color }),
+        el('span', { textContent: s.label }),
+      ]));
+    });
+
+    // Draw
+    var dpr = window.devicePixelRatio || 1;
+    var w = canvas.parentElement.clientWidth || 800;
+    var h = 240;
+    canvas.width = w * dpr;
+    canvas.height = h * dpr;
+    canvas.style.width = w + 'px';
+    canvas.style.height = h + 'px';
+    var ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+    ctx.clearRect(0, 0, w, h);
+
+    var padL = 48, padR = 20, padT = 20, padB = 44;
+    var cw = w - padL - padR;
+    var ch = h - padT - padB;
+
+    // Y axis: 0–100%
+    ctx.font = '11px system-ui, sans-serif';
+    ctx.fillStyle = 'hsl(320, 2%, 64%)';
+    ctx.textAlign = 'right';
+    for (var y = 0; y <= 4; y++) {
+      var val = y * 25;
+      var py = padT + ch - (y / 4) * ch;
+      ctx.fillText(val + '%', padL - 8, py + 4);
+      ctx.beginPath();
+      ctx.moveTo(padL, py);
+      ctx.lineTo(w - padR, py);
+      ctx.strokeStyle = 'hsl(0, 0%, 91%)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+
+    // X labels
+    ctx.textAlign = 'center';
+    var xStep = Math.max(1, Math.floor(points.length / 5));
+    points.forEach(function (p, i) {
+      if (i % xStep === 0 || i === points.length - 1) {
+        var px = padL + (i / (points.length - 1)) * cw;
+        // Show date portion only
+        var dateLabel = p.label.slice(0, 10);
+        ctx.fillText(dateLabel, px, h - padB + 20);
+      }
+    });
+
+    // Draw each series line
+    series.forEach(function (s) {
+      ctx.beginPath();
+      ctx.strokeStyle = s.color;
+      ctx.lineWidth = 2.5;
+      ctx.lineJoin = 'round';
+      points.forEach(function (p, i) {
+        var px = padL + (i / Math.max(1, points.length - 1)) * cw;
+        var py = padT + ch - (p.metrics[s.key] / 100) * ch;
+        if (i === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      });
+      ctx.stroke();
+
+      // End dot
+      var last = points[points.length - 1];
+      var lpx = padL + cw;
+      var lpy = padT + ch - (last.metrics[s.key] / 100) * ch;
+      ctx.beginPath();
+      ctx.arc(lpx, lpy, 4, 0, Math.PI * 2);
+      ctx.fillStyle = s.color;
+      ctx.fill();
+
+      // Value label at end
+      ctx.font = '11px system-ui, sans-serif';
+      ctx.fillStyle = s.color;
+      ctx.textAlign = 'left';
+      ctx.fillText(fmtPct(last.metrics[s.key]), lpx + 8, lpy + 4);
+    });
   }
 
   // ---- Tab 2: Component Inventory ----
@@ -1811,6 +1986,8 @@ window.__DS_OBSERVATORY_DATA__ = {
 
   function renderHeaderMeta(analytics, audit) {
     var meta = document.getElementById('header-meta');
+    // Don't overwrite if snapshot selector is present
+    if (meta.querySelector('select')) return;
     var parts = [];
     if (analytics && analytics.collectedAt) {
       parts.push('Collected ' + analytics.collectedAt.slice(0, 10));
@@ -1819,6 +1996,75 @@ window.__DS_OBSERVATORY_DATA__ = {
       parts.push(audit.files.length + ' files');
     }
     meta.textContent = parts.join(' \u00b7 ');
+  }
+
+  function renderDashboard(analytics, audit, canonical) {
+    state.analytics = analytics;
+    state.audit = audit;
+    state.canonical = canonical;
+
+    // Build file key → name lookup
+    state.fileKeyToName = {};
+    if (audit && audit.files) {
+      audit.files.forEach(function (f) {
+        state.fileKeyToName[f.fileKey] = f.fileName;
+      });
+    }
+
+    renderHeaderMeta(analytics, audit);
+
+    // Tab 1: Design Coverage
+    var metrics = computeMetrics(analytics, audit);
+    renderMetricCards(metrics);
+    renderHeatmap(audit);
+    renderTrendChart(state.snapshots);
+
+    // Tab 2: Component Inventory
+    state.expandedRow = null;
+    renderInventory(analytics, canonical);
+
+    // Tab 3: Migration Tracker
+    renderMigrationChart(analytics);
+    renderMigrationTable(analytics);
+    renderDLSOnlyList(analytics);
+    renderDLSRatioBars(analytics);
+  }
+
+  function initSnapshotSelector(snapshots, canonical) {
+    var meta = document.getElementById('header-meta');
+    if (!meta || snapshots.length < 2) return;
+
+    // Replace plain text with a dropdown
+    meta.innerHTML = '';
+
+    var select = el('select', { className: 'snapshot-select', 'aria-label': 'Select collection snapshot' });
+
+    // "Latest" option
+    var latestDate = state._latestAnalytics && state._latestAnalytics.collectedAt
+      ? state._latestAnalytics.collectedAt.slice(0, 10)
+      : 'latest';
+    var fileCount = state._latestAudit && state._latestAudit.files ? state._latestAudit.files.length : 0;
+    select.appendChild(el('option', { value: 'latest', textContent: latestDate + ' \u00b7 ' + fileCount + ' files (latest)' }));
+
+    // Snapshot options newest-first
+    snapshots.slice().reverse().forEach(function (snap, i) {
+      var idx = snapshots.length - 1 - i;
+      var snapDate = snap.timestamp.slice(0, 10);
+      var snapFiles = snap.audit && snap.audit.files ? snap.audit.files.length : 0;
+      select.appendChild(el('option', { value: String(idx), textContent: snapDate + ' \u00b7 ' + snapFiles + ' files' }));
+    });
+
+    select.addEventListener('change', function () {
+      var val = select.value;
+      if (val === 'latest') {
+        renderDashboard(state._latestAnalytics, state._latestAudit, canonical);
+      } else {
+        var snap = snapshots[parseInt(val, 10)];
+        if (snap) renderDashboard(snap.analytics, snap.audit, canonical);
+      }
+    });
+
+    meta.appendChild(select);
   }
 
   function init() {
@@ -1830,17 +2076,9 @@ window.__DS_OBSERVATORY_DATA__ = {
         var audit = data.audit;
         var canonical = data.canonical;
 
-        state.analytics = analytics;
-        state.audit = audit;
+        state._latestAnalytics = analytics;
+        state._latestAudit = audit;
         state.canonical = canonical;
-
-        // Build file key → name lookup
-        state.fileKeyToName = {};
-        if (audit && audit.files) {
-          audit.files.forEach(function (f) {
-            state.fileKeyToName[f.fileKey] = f.fileName;
-          });
-        }
 
         var hasData = (audit && audit.files && audit.files.length > 0) ||
                       (analytics && (analytics.dls || analytics.arcade));
@@ -1850,37 +2088,22 @@ window.__DS_OBSERVATORY_DATA__ = {
           return;
         }
 
-        renderHeaderMeta(analytics, audit);
+        // Load snapshots in parallel, then render
+        loadSnapshots().then(function (snapshots) {
+          state.snapshots = snapshots;
+          initSnapshotSelector(snapshots, canonical);
+          initInventoryControls(analytics, canonical);
+          renderDashboard(analytics, audit, canonical);
 
-        // Tab 1: Design Coverage
-        var metrics = computeMetrics(analytics, audit);
-        renderMetricCards(metrics);
-        renderHeatmap(audit);
-
-        // Tab 2: Component Inventory
-        renderInventory(analytics, canonical);
-        initInventoryControls(analytics, canonical);
-
-        // Tab 3: File Health
-        renderFileSelector(audit);
-
-        // Tab 4: Migration Tracker
-        renderMigrationChart(analytics);
-        renderMigrationTable(analytics);
-        renderDLSOnlyList(analytics);
-        renderDLSRatioBars(analytics);
-
-        // Resize handler for charts
-        var resizeTimer;
-        window.addEventListener('resize', function () {
-          clearTimeout(resizeTimer);
-          resizeTimer = setTimeout(function () {
-            renderMigrationChart(analytics);
-            if (state.selectedFileKey && audit && audit.files) {
-              var file = audit.files.find(function (f) { return f.fileKey === state.selectedFileKey; });
-              if (file) renderFileDetail(file);
-            }
-          }, 200);
+          // Resize handler for charts
+          var resizeTimer;
+          window.addEventListener('resize', function () {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(function () {
+              renderMigrationChart(state.analytics);
+              renderTrendChart(state.snapshots);
+            }, 200);
+          });
         });
       })
       .catch(function () {
