@@ -221,7 +221,6 @@
       { label: 'Other DS', color: COLORS.other },
       { label: 'Detached', color: COLORS.detached },
       { label: 'Local', color: COLORS.local },
-      { label: 'Raw nodes', color: COLORS.raw },
     ];
     var legend = el('div', { className: 'heatmap-legend' });
     legendItems.forEach(function (item) {
@@ -245,14 +244,14 @@
         { value: b.dsOther, color: COLORS.other },
         { value: b.detached + suspected, color: COLORS.detached },
         { value: b.localComponent, color: COLORS.local },
-        { value: Math.max(0, b.raw - suspected), color: COLORS.raw },
       ];
+      var barTotal = segments.reduce(function (s, seg) { return s + seg.value; }, 0) || 1;
 
       var bar = el('div', { className: 'heatmap-bar-track' });
       segments.forEach(function (seg) {
         if (seg.value > 0) {
           bar.appendChild(el('div', {
-            style: 'width:' + pct(seg.value, total) + '%;background:' + seg.color,
+            style: 'width:' + pct(seg.value, barTotal) + '%;background:' + seg.color,
             title: fmtNum(seg.value) + ' instances',
           }));
         }
