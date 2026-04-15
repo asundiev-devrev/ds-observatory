@@ -334,14 +334,22 @@
     var legendEl = document.getElementById('trend-legend');
     if (!canvas || !card) return;
 
-    // Compute metrics for each snapshot
-    var points = snapshots.map(function (snap) {
-      var m = computeMetrics(snap.analytics, snap.audit);
-      return { label: snap.timestamp, metrics: m };
-    }).filter(function (p) {
-      // Skip snapshots with no meaningful data
-      return p.metrics.totalComponentSurface > 100;
-    });
+    var points;
+
+    // Use pre-computed snapshotMetrics if available (static report)
+    if (state.snapshotMetrics && state.snapshotMetrics.length > 0) {
+      points = state.snapshotMetrics.map(function (m) {
+        return { label: m.timestamp, metrics: m };
+      });
+    } else {
+      // Compute from full snapshot data (local server)
+      points = snapshots.map(function (snap) {
+        var m = computeMetrics(snap.analytics, snap.audit);
+        return { label: snap.timestamp, metrics: m };
+      }).filter(function (p) {
+        return p.metrics.totalComponentSurface > 100;
+      });
+    }
 
     if (points.length < 2) {
       card.style.display = 'none';
@@ -1171,6 +1179,7 @@
         state._latestAnalytics = analytics;
         state._latestAudit = audit;
         state.canonical = canonical;
+        state.snapshotMetrics = data.snapshotMetrics || null;
 
         var hasData = (audit && audit.files && audit.files.length > 0) ||
                       (analytics && (analytics.dls || analytics.arcade));

@@ -2,10 +2,94 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readData } from '../store/index.js';
-import type { LibraryAnalyticsData, HotFileAuditData } from '../types.js';
+import type { LibraryAnalyticsData, HotFileAuditData, HotFileEntry } from '../types.js';
 
 interface ReportOptions {
   output: string;
+}
+
+interface SnapshotMetric {
+  timestamp: string;
+  dsCoverage: number;
+  arcadeAdoption: number;
+  detachRate: number;
+  totalDS: number;
+  totalArcade: number;
+  totalDetached: number;
+  totalComponentSurface: number;
+}
+
+function pct(n: number, d: number): number {
+  return d ? Math.round((n / d) * 1000) / 10 : 0;
+}
+
+function computeSnapshotMetrics(audit: HotFileAuditData): SnapshotMetric | null {
+  const files = audit?.files ?? [];
+  if (!files.length) return null;
+
+  let totalDS = 0, totalArcade = 0, totalDetached = 0, totalComponentSurface = 0;
+
+  files.forEach((f: HotFileEntry) => {
+    const b = f.breakdown;
+    const suspected = (f.suspectedDetachments ?? []).length;
+    totalDS += b.dsArcade + b.dsDls + b.dsOther;
+    totalArcade += b.dsArcade;
+    totalDetached += b.detached + suspected;
+    totalComponentSurface += f.componentSurface + suspected;
+  });
+
+  if (totalComponentSurface < 100) return null;
+
+  return {
+    timestamp: '',
+    dsCoverage: pct(totalDS, totalComponentSurface),
+    arcadeAdoption: pct(totalArcade, totalDS || 1),
+    detachRate: pct(totalDetached, totalComponentSurface || 1),
+    totalDS,
+    totalArcade,
+    totalDetached,
+    totalComponentSurface,
+  };
+}
+
+async function buildSnapshotMetrics(dataDir: string): Promise<SnapshotMetric[]> {
+  const snapshotDir = path.join(dataDir, 'snapshots');
+  let files: string[];
+  try {
+    files = await fs.readdir(snapshotDir);
+  } catch {
+    return [];
+  }
+
+  // Group by truncated timestamp (strip milliseconds)
+  const analyticsFiles: { ts: string; file: string }[] = [];
+  const auditFiles: { ts: string; file: string }[] = [];
+  for (const f of files) {
+    const m = f.match(/^(library-analytics|hot-file-audit)-(\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2})/);
+    if (!m) continue;
+    if (m[1] === 'library-analytics') analyticsFiles.push({ ts: m[2], file: f });
+    else auditFiles.push({ ts: m[2], file: f });
+  }
+
+  const auditMap = new Map<string, string>();
+  auditFiles.forEach(a => auditMap.set(a.ts, a.file));
+
+  const pairs = analyticsFiles
+    .filter(a => auditMap.has(a.ts))
+    .map(a => ({ ts: a.ts, auditFile: auditMap.get(a.ts)! }))
+    .sort((a, b) => a.ts.localeCompare(b.ts));
+
+  const metrics: SnapshotMetric[] = [];
+  for (const p of pairs) {
+    const audit = await readData<HotFileAuditData>(snapshotDir, p.auditFile);
+    if (!audit) continue;
+    const m = computeSnapshotMetrics(audit);
+    if (!m) continue;
+    m.timestamp = p.ts.slice(0, 10) + ' ' + p.ts.slice(11).replace(/-/g, ':').slice(0, 5);
+    metrics.push(m);
+  }
+
+  return metrics;
 }
 
 export async function reportCommand(options: ReportOptions): Promise<void> {
@@ -19,6 +103,9 @@ export async function reportCommand(options: ReportOptions): Promise<void> {
     console.error('No data found. Run `ds-observatory collect` first.');
     process.exit(1);
   }
+
+  const snapshotMetrics = await buildSnapshotMetrics(dataDir);
+  console.log(`Found ${snapshotMetrics.length} snapshot(s) for trend chart`);
 
   const dashboardDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../dashboard');
   const html = await fs.readFile(path.join(dashboardDir, 'index.html'), 'utf-8');
@@ -36,7 +123,8 @@ export async function reportCommand(options: ReportOptions): Promise<void> {
 window.__DS_OBSERVATORY_DATA__ = {
   analytics: ${JSON.stringify(analytics)},
   audit: ${JSON.stringify(audit)},
-  canonical: ${JSON.stringify(canonical)}
+  canonical: ${JSON.stringify(canonical)},
+  snapshotMetrics: ${JSON.stringify(snapshotMetrics)}
 };
 </script>
 <script>${js}</script>`,
