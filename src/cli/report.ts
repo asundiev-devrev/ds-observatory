@@ -52,16 +52,51 @@ function computeSnapshotMetrics(audit: HotFileAuditData): SnapshotMetric | null 
   };
 }
 
-async function buildSnapshotMetrics(dataDir: string): Promise<SnapshotMetric[]> {
+interface SlimSnapshot {
+  timestamp: string;
+  analytics: LibraryAnalyticsData;
+  audit: { files: SlimFile[] };
+}
+
+interface SlimFile {
+  fileKey: string;
+  fileName: string;
+  totalNodes: number;
+  componentSurface: number;
+  versionCount: number;
+  lastModified: string;
+  breakdown: HotFileEntry['breakdown'];
+  suspectedDetachmentCount: number;
+}
+
+function slimAudit(audit: HotFileAuditData): { files: SlimFile[] } {
+  return {
+    files: (audit.files ?? []).map(f => ({
+      fileKey: f.fileKey,
+      fileName: f.fileName,
+      totalNodes: f.totalNodes,
+      componentSurface: f.componentSurface,
+      versionCount: f.versionCount,
+      lastModified: f.lastModified,
+      breakdown: f.breakdown,
+      suspectedDetachmentCount: (f.suspectedDetachments ?? []).length,
+    })),
+  };
+}
+
+function formatTimestamp(ts: string): string {
+  return ts.slice(0, 10) + ' ' + ts.slice(11).replace(/-/g, ':').slice(0, 5);
+}
+
+async function buildSnapshots(dataDir: string): Promise<{ metrics: SnapshotMetric[]; snapshots: SlimSnapshot[] }> {
   const snapshotDir = path.join(dataDir, 'snapshots');
   let files: string[];
   try {
     files = await fs.readdir(snapshotDir);
   } catch {
-    return [];
+    return { metrics: [], snapshots: [] };
   }
 
-  // Group by truncated timestamp (strip milliseconds)
   const analyticsFiles: { ts: string; file: string }[] = [];
   const auditFiles: { ts: string; file: string }[] = [];
   for (const f of files) {
@@ -76,20 +111,32 @@ async function buildSnapshotMetrics(dataDir: string): Promise<SnapshotMetric[]> 
 
   const pairs = analyticsFiles
     .filter(a => auditMap.has(a.ts))
-    .map(a => ({ ts: a.ts, auditFile: auditMap.get(a.ts)! }))
+    .map(a => ({ ts: a.ts, analyticsFile: a.file, auditFile: auditMap.get(a.ts)! }))
     .sort((a, b) => a.ts.localeCompare(b.ts));
 
   const metrics: SnapshotMetric[] = [];
+  const snapshots: SlimSnapshot[] = [];
+
   for (const p of pairs) {
+    const analytics = await readData<LibraryAnalyticsData>(snapshotDir, p.analyticsFile);
     const audit = await readData<HotFileAuditData>(snapshotDir, p.auditFile);
-    if (!audit) continue;
+    if (!analytics || !audit) continue;
+
     const m = computeSnapshotMetrics(audit);
     if (!m) continue;
-    m.timestamp = p.ts.slice(0, 10) + ' ' + p.ts.slice(11).replace(/-/g, ':').slice(0, 5);
+
+    const label = formatTimestamp(p.ts);
+    m.timestamp = label;
     metrics.push(m);
+
+    snapshots.push({
+      timestamp: label,
+      analytics,
+      audit: slimAudit(audit),
+    });
   }
 
-  return metrics;
+  return { metrics, snapshots };
 }
 
 export async function reportCommand(options: ReportOptions): Promise<void> {
@@ -104,7 +151,7 @@ export async function reportCommand(options: ReportOptions): Promise<void> {
     process.exit(1);
   }
 
-  const snapshotMetrics = await buildSnapshotMetrics(dataDir);
+  const { metrics: snapshotMetrics, snapshots: slimSnapshots } = await buildSnapshots(dataDir);
   console.log(`Found ${snapshotMetrics.length} snapshot(s) for trend chart`);
 
   const dashboardDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../dashboard');
@@ -124,7 +171,8 @@ window.__DS_OBSERVATORY_DATA__ = {
   analytics: ${JSON.stringify(analytics)},
   audit: ${JSON.stringify(audit)},
   canonical: ${JSON.stringify(canonical)},
-  snapshotMetrics: ${JSON.stringify(snapshotMetrics)}
+  snapshotMetrics: ${JSON.stringify(snapshotMetrics)},
+  snapshots: ${JSON.stringify(slimSnapshots)}
 };
 </script>
 <script>${js}</script>`,

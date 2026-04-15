@@ -81,6 +81,10 @@
   // ---- Helpers ----
 
   function pct(n, d) { return d ? Math.round((n / d) * 1000) / 10 : 0; }
+  function suspectedCount(file) {
+    if (typeof file.suspectedDetachmentCount === 'number') return file.suspectedDetachmentCount;
+    return (file.suspectedDetachments || []).length;
+  }
   function fmtPct(v) { return v.toFixed(1) + '%'; }
   function fmtNum(n) { return n.toLocaleString(); }
 
@@ -163,7 +167,7 @@
 
     files.forEach(function (f) {
       var b = f.breakdown;
-      var suspected = (f.suspectedDetachments || []).length;
+      var suspected = suspectedCount(f);
       totalDS += b.dsArcade + b.dsDls + b.dsOther;
       totalArcade += b.dsArcade;
       totalDetached += b.detached + suspected;
@@ -269,7 +273,7 @@
 
     sorted.forEach(function (file) {
       var b = file.breakdown;
-      var suspected = (file.suspectedDetachments || []).length;
+      var suspected = suspectedCount(file);
       var total = (file.componentSurface + suspected) || 1;
       var dsTotal = b.dsArcade + b.dsDls + b.dsOther;
       var coverage = pct(dsTotal, total);
@@ -650,7 +654,7 @@
 
     files.forEach(function (file) {
       var b = file.breakdown;
-      var suspected = (file.suspectedDetachments || []).length;
+      var suspected = suspectedCount(file);
       var surface = file.componentSurface + suspected;
       var dsTotal = b.dsArcade + b.dsDls + b.dsOther;
       var coverage = pct(dsTotal, surface);
@@ -702,7 +706,7 @@
     donutWrap.appendChild(donutCanvas);
 
     var b = file.breakdown;
-    var suspected = (file.suspectedDetachments || []).length;
+    var suspected = suspectedCount(file);
     var segments = [
       { label: 'Arcade', value: b.dsArcade, color: COLORS.arcade },
       { label: 'DLS', value: b.dsDls, color: COLORS.dls },
@@ -729,7 +733,7 @@
     var statsRow = el('div', { className: 'stats-row' });
     var stats = [
       { label: 'Total nodes', value: fmtNum(file.totalNodes) },
-      { label: 'Component surface', value: fmtNum(file.componentSurface + (file.suspectedDetachments || []).length) },
+      { label: 'Component surface', value: fmtNum(file.componentSurface + suspectedCount(file)) },
       { label: 'Versions', value: fmtNum(file.versionCount) },
       { label: 'Last modified', value: file.lastModified ? file.lastModified.slice(0, 10) : '—' },
     ];
@@ -1189,8 +1193,15 @@
           return;
         }
 
-        // Load snapshots in parallel, then render
-        loadSnapshots().then(function (snapshots) {
+        // Load snapshots: use embedded data or fetch from server
+        var snapshotsReady;
+        if (data.snapshots && data.snapshots.length > 0) {
+          snapshotsReady = Promise.resolve(data.snapshots);
+        } else {
+          snapshotsReady = loadSnapshots();
+        }
+
+        snapshotsReady.then(function (snapshots) {
           state.snapshots = snapshots;
           initSnapshotSelector(snapshots, canonical);
           initInventoryControls(analytics, canonical);
