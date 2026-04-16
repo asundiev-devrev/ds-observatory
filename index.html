@@ -4,6 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Design System Observatory</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
   <style>/* ============================================================
    Design System Observatory — Computer Design Language
    Chip font family + Arcade tokens + bold modern aesthetic
@@ -126,6 +129,25 @@
   --font-text: 'Chip Text Variable', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
   --font-display: 'Chip Display Variable', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
   --font-mono: 'Chip Mono', 'SF Mono', 'Fira Code', 'Consolas', monospace;
+  --font-small: 'Roboto Mono', 'SF Mono', monospace;
+}
+
+/* Roboto Mono for all small text on the coverage page */
+#panel-coverage .health-card-label,
+#panel-coverage .health-card-value .trend-down,
+#panel-coverage .health-card-value .trend-up,
+#panel-coverage .cg-trend-label,
+#panel-coverage .cg-trend .legend-item,
+#panel-coverage .cg-activity-label,
+#panel-coverage .cg-activity .activity-label,
+#panel-coverage .cg-activity .activity-month-label,
+#panel-coverage .cg-activity .activity-grid-legend,
+#panel-coverage .cg-files-title,
+#panel-coverage .cg-files-legend-item,
+#panel-coverage .file-row-name,
+#panel-coverage .file-row-meta,
+#panel-coverage .header-meta .snapshot-select {
+  font-family: var(--font-small);
 }
 
 /* ---- Reset ---- */
@@ -2045,7 +2067,7 @@ window.__DS_OBSERVATORY_DATA__ = {
     var ch = h - padT - padB;
 
     // Y axis: 0–100%
-    ctx.font = '11px Chip Text Variable, system-ui, sans-serif';
+    ctx.font = '11px Roboto Mono, SF Mono, monospace';
     ctx.fillStyle = '#7a6e40';
     ctx.textAlign = 'right';
     for (var y = 0; y <= 4; y++) {
@@ -2094,7 +2116,7 @@ window.__DS_OBSERVATORY_DATA__ = {
       ctx.fill();
 
       // Value label at end
-      ctx.font = '11px Chip Text Variable, system-ui, sans-serif';
+      ctx.font = '11px Roboto Mono, SF Mono, monospace';
       ctx.fillStyle = s.color;
       ctx.textAlign = 'left';
       ctx.fillText(fmtPct(last.metrics[s.key]), lpx + 8, lpy + 4);
