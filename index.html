@@ -233,6 +233,195 @@ ul { list-style: none; }
   padding: var(--sp-lg);
 }
 
+/* ---- Health Hero ---- */
+.health-hero {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--sp-sm);
+  margin-bottom: var(--sp-base);
+}
+.health-card {
+  display: flex;
+  flex-direction: column;
+  padding: var(--sp-lg);
+  background: hsl(var(--bg-layer-01));
+  border: 1px solid hsl(var(--border-outline-00));
+  border-radius: 8px;
+}
+.health-card-label {
+  font-size: 11px;
+  font-variation-settings: 'wght' 540;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: hsl(var(--text-color-secondary));
+  margin-bottom: var(--sp-xs);
+}
+.health-card-value {
+  font-size: 28px;
+  line-height: 32px;
+  font-variation-settings: 'wght' 660;
+  color: hsl(var(--text-color-primary));
+  font-variant-numeric: tabular-nums;
+}
+.health-card-value .trend-up,
+.health-card-value .trend-down {
+  font-size: 14px;
+}
+
+/* ---- Leaderboard ---- */
+.leaderboard-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-sm);
+  padding: var(--sp-xs) 0;
+  border-bottom: 1px solid hsl(228 4% 90%);
+}
+.leaderboard-rank {
+  width: 24px;
+  flex-shrink: 0;
+  font-size: 12px;
+  font-variation-settings: 'wght' 660;
+  color: hsl(var(--text-color-tertiary));
+  text-align: center;
+}
+.leaderboard-name {
+  flex: 1;
+  font-size: 13px;
+  font-variation-settings: 'wght' 540;
+  color: hsl(var(--text-color-primary));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.leaderboard-bar-wrap {
+  width: 200px;
+  flex-shrink: 0;
+  height: 16px;
+  border-radius: 4px;
+  overflow: hidden;
+  display: flex;
+  background: hsl(var(--bg-outline-00));
+}
+.leaderboard-bar-wrap > div { height: 100%; }
+.leaderboard-score {
+  width: 36px;
+  flex-shrink: 0;
+  font-size: 14px;
+  font-variation-settings: 'wght' 660;
+  color: hsl(var(--text-color-primary));
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.leaderboard-trend {
+  width: 24px;
+  flex-shrink: 0;
+  font-size: 12px;
+  text-align: center;
+}
+.trend-up { color: hsl(var(--hardy-500)); }
+.trend-down { color: hsl(var(--persimmon-500)); }
+.trend-flat { color: hsl(var(--husk-500)); }
+.leaderboard-details {
+  display: flex;
+  gap: var(--sp-base);
+  width: 240px;
+  flex-shrink: 0;
+}
+.leaderboard-detail {
+  font-size: 11px;
+  font-variation-settings: 'wght' 440;
+  color: hsl(var(--text-color-tertiary));
+  font-variant-numeric: tabular-nums;
+}
+.leaderboard-legend {
+  display: flex;
+  gap: var(--sp-base);
+  margin-bottom: var(--sp-xs);
+}
+
+/* ---- Activity Grid ---- */
+.activity-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.activity-cell {
+  height: 14px;
+  border-radius: 2px;
+  flex: 1;
+  min-width: 0;
+  cursor: default;
+  background: hsl(var(--bg-outline-00));
+}
+.activity-cell[data-level="1"] { background: hsla(var(--hardy-500) / 0.3); }
+.activity-cell[data-level="2"] { background: hsla(var(--hardy-500) / 0.5); }
+.activity-cell[data-level="3"] { background: hsla(var(--hardy-500) / 0.7); }
+.activity-cell[data-level="4"] { background: hsl(var(--hardy-500)); }
+.activity-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-xs);
+  margin-bottom: 2px;
+}
+.activity-label {
+  width: 200px;
+  flex-shrink: 0;
+  font-size: 12px;
+  font-variation-settings: 'wght' 440;
+  color: hsl(var(--text-color-tertiary));
+  text-align: right;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.activity-cells {
+  display: flex;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+.activity-month-label {
+  flex: 1;
+  min-width: 0;
+  font-size: 10px;
+  color: hsl(var(--text-color-secondary));
+  text-align: left;
+  white-space: nowrap;
+  overflow: visible;
+}
+.activity-grid-legend {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3xs);
+  margin-top: var(--sp-xs);
+  justify-content: flex-end;
+  font-size: 11px;
+  color: hsl(var(--text-color-tertiary));
+}
+.activity-grid-legend .activity-cell { width: 12px; height: 12px; flex: none; }
+
+/* Grid tooltip */
+.grid-tooltip {
+  position: fixed;
+  z-index: 100;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.08s;
+  background: hsl(220, 10%, 18%);
+  color: hsl(220, 10%, 95%);
+  font-size: 12px;
+  line-height: 1.4;
+  padding: 6px 10px;
+  border-radius: 6px;
+  white-space: pre-line;
+  max-width: 320px;
+  font-variation-settings: 'wght' 440;
+  box-shadow: 0 2px 8px hsla(0,0%,0%,0.2);
+}
+.grid-tooltip.visible {
+  opacity: 1;
+}
+
 /* ---- Panels ---- */
 .panel.hidden, .hidden { display: none !important; }
 .panel[hidden] { display: none !important; }
@@ -494,6 +683,8 @@ ul { list-style: none; }
   background: hsl(var(--bg-layer-01));
   z-index: 2;
 }
+.data-table th.num,
+.data-table td.num { text-align: right; font-variant-numeric: tabular-nums; }
 .data-table th.sortable { cursor: pointer; }
 .data-table th.sortable:hover { background: hsla(var(--text-color-primary) / 0.04); }
 .sort-icon { font-size: 10px; opacity: 0.3; }
@@ -539,9 +730,29 @@ ul { list-style: none; }
   border-radius: 8px;
   white-space: nowrap;
 }
-.badge.arcade  { background: var(--c-arcade-bg);  color: hsl(var(--hardy-600)); }
-.badge.dls     { background: var(--c-dls-bg);     color: hsl(var(--shuiguo-600)); }
-.badge.both    { background: hsla(var(--banginapalli-100) / 0.5); color: hsl(var(--banginapalli-600)); }
+.badge.arcade,
+.badge.dls,
+.badge.both    { background: hsl(var(--surface-02)); color: hsl(var(--text-color-secondary)); }
+
+/* Friction badges */
+.friction-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-variation-settings: "wght" 580;
+  padding: 1px 6px;
+  border-radius: 8px;
+  margin-left: 8px;
+  vertical-align: middle;
+  cursor: default;
+}
+.friction-high {
+  background: hsla(var(--persimmon-100) / 0.6);
+  color: hsl(var(--persimmon-600));
+}
+.friction-medium {
+  background: hsla(var(--banginapalli-100) / 0.5);
+  color: hsl(var(--banginapalli-600));
+}
 
 /* Sparkline */
 .sparkline {
@@ -802,7 +1013,9 @@ ul { list-style: none; }
 
     <main class="main">
       <section class="panel" role="tabpanel" id="panel-coverage" aria-labelledby="tab-coverage">
-        <div class="metric-cards" id="metric-cards"></div>
+        <div class="health-hero" id="health-hero"></div>
+        <!-- metric-cards merged into health-hero -->
+        <div class="metric-cards" id="metric-cards" style="display:none"></div>
         <div class="card chart-card" id="trend-card" style="display:none">
           <h2 class="card-title">Metrics over time</h2>
           <div class="chart-container">
@@ -810,9 +1023,13 @@ ul { list-style: none; }
           </div>
           <div class="chart-legend" id="trend-legend"></div>
         </div>
+        <div class="card" id="activity-card" style="display:none">
+          <h2 class="card-title">Activity</h2>
+          <div id="activity-grid"></div>
+        </div>
         <div class="card">
-          <h2 class="card-title">File coverage heatmap</h2>
-          <div id="heatmap"></div>
+          <h2 class="card-title">File leaderboard</h2>
+          <div id="leaderboard"></div>
         </div>
       </section>
 
@@ -822,6 +1039,7 @@ ul { list-style: none; }
           <button class="pill" data-filter="dls">DLS</button>
           <button class="pill" data-filter="arcade">Arcade</button>
           <button class="pill" data-filter="both">Overlap</button>
+          <button class="pill" data-filter="friction">Friction</button>
         </div>
         <div class="card table-card">
           <div class="table-scroll">
@@ -830,8 +1048,9 @@ ul { list-style: none; }
                 <tr>
                   <th class="sortable" data-sort="name">Component name <span class="sort-icon"></span></th>
                   <th class="sortable" data-sort="library">Library <span class="sort-icon"></span></th>
-                  <th class="sortable" data-sort="insertions">Insertions <span class="sort-icon"></span></th>
-                  <th class="sortable" data-sort="files">Files used in <span class="sort-icon"></span></th>
+                  <th class="sortable num" data-sort="variants">Variants <span class="sort-icon"></span></th>
+                  <th class="sortable num" data-sort="insertions">Insertions <span class="sort-icon"></span></th>
+                  <th class="sortable num" data-sort="files">Files used in <span class="sort-icon"></span></th>
                 </tr>
               </thead>
               <tbody id="inventory-body"></tbody>
@@ -899,6 +1118,7 @@ ul { list-style: none; }
       </div>
     </main>
   </div>
+  <div class="grid-tooltip" id="grid-tooltip"></div>
   <script>
 window.__DS_OBSERVATORY_DATA__ = {
   analytics: {"collectedAt":"2026-04-15T06:37:08.463Z","dls":{"totalInsertions":15494,"totalDetachments":0,"components":[{"name":"Nav.List.Item","id":"7051:26370","insertions":1985,"detachments":0,"files":["kJcKzhKL6nPe1ZSzU7gU85","HFXHCJCo8ZUK2kj5FsAkuO","cs9zQek6unUhtm8qUoyqpE","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq","7cC7thTEEBrQx7CObGEijm"]},{"name":"Icon Button","id":"4115:21767","insertions":1939,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","kJcKzhKL6nPe1ZSzU7gU85","7ZCyEAUpCp5HldmwE9y9l2","HFXHCJCo8ZUK2kj5FsAkuO","cs9zQek6unUhtm8qUoyqpE","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq","7cC7thTEEBrQx7CObGEijm","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Button","id":"4115:22436","insertions":1915,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","kJcKzhKL6nPe1ZSzU7gU85","7ZCyEAUpCp5HldmwE9y9l2","HFXHCJCo8ZUK2kj5FsAkuO","cs9zQek6unUhtm8qUoyqpE","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq","7cC7thTEEBrQx7CObGEijm","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Separator","id":"4116:29915","insertions":1587,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","kJcKzhKL6nPe1ZSzU7gU85","HFXHCJCo8ZUK2kj5FsAkuO","cs9zQek6unUhtm8qUoyqpE","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq","7cC7thTEEBrQx7CObGEijm"]},{"name":"Cell","id":"7051:27226","insertions":1414,"detachments":0,"files":["kJcKzhKL6nPe1ZSzU7gU85","7cC7thTEEBrQx7CObGEijm"]},{"name":"Badge","id":"4115:21190","insertions":982,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","kJcKzhKL6nPe1ZSzU7gU85","7ZCyEAUpCp5HldmwE9y9l2","HFXHCJCo8ZUK2kj5FsAkuO","cs9zQek6unUhtm8qUoyqpE","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq","7cC7thTEEBrQx7CObGEijm","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Tab Item","id":"7179:25016","insertions":660,"detachments":0,"files":["kJcKzhKL6nPe1ZSzU7gU85","7cC7thTEEBrQx7CObGEijm"]},{"name":"Field.Label","id":"4115:27899","insertions":591,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","kJcKzhKL6nPe1ZSzU7gU85","7ZCyEAUpCp5HldmwE9y9l2","HFXHCJCo8ZUK2kj5FsAkuO","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq","7cC7thTEEBrQx7CObGEijm","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Tabs","id":"7051:26735","insertions":541,"detachments":0,"files":["kJcKzhKL6nPe1ZSzU7gU85","cs9zQek6unUhtm8qUoyqpE","7cC7thTEEBrQx7CObGEijm"]},{"name":"Nav.List.Label","id":"7051:26287","insertions":536,"detachments":0,"files":["kJcKzhKL6nPe1ZSzU7gU85","cs9zQek6unUhtm8qUoyqpE","tIc4uIdzKiu2GQI0CW19Pe","7cC7thTEEBrQx7CObGEijm"]},{"name":"Toolbar","id":"5563:46172","insertions":368,"detachments":0,"files":["cs9zQek6unUhtm8qUoyqpE","7cC7thTEEBrQx7CObGEijm"]},{"name":"Breadcrumb.Seperator","id":"7011:19100","insertions":350,"detachments":0,"files":["kJcKzhKL6nPe1ZSzU7gU85","7ZCyEAUpCp5HldmwE9y9l2","HFXHCJCo8ZUK2kj5FsAkuO","7cC7thTEEBrQx7CObGEijm"]},{"name":"Menu.Item ","id":"4235:33547","insertions":278,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","kJcKzhKL6nPe1ZSzU7gU85","HFXHCJCo8ZUK2kj5FsAkuO","FbsJK4uyKXREfSIGKEXgFq","7cC7thTEEBrQx7CObGEijm"]},{"name":"Breadcrumb.Item","id":"7011:19091","insertions":274,"detachments":0,"files":["kJcKzhKL6nPe1ZSzU7gU85","7ZCyEAUpCp5HldmwE9y9l2","HFXHCJCo8ZUK2kj5FsAkuO","7cC7thTEEBrQx7CObGEijm"]},{"name":"Nav.List.Group","id":"7051:26445","insertions":211,"detachments":0,"files":["kJcKzhKL6nPe1ZSzU7gU85","cs9zQek6unUhtm8qUoyqpE","7cC7thTEEBrQx7CObGEijm"]},{"name":"Breadcrumb","id":"9477:13005","insertions":184,"detachments":0,"files":["7ZCyEAUpCp5HldmwE9y9l2","HFXHCJCo8ZUK2kj5FsAkuO","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq","7cC7thTEEBrQx7CObGEijm","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Menu Label","id":"4235:33499","insertions":169,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","kJcKzhKL6nPe1ZSzU7gU85","HFXHCJCo8ZUK2kj5FsAkuO","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq","7cC7thTEEBrQx7CObGEijm"]},{"name":"Cell/Header","id":"7051:27115","insertions":147,"detachments":0,"files":["kJcKzhKL6nPe1ZSzU7gU85","7cC7thTEEBrQx7CObGEijm"]},{"name":"Checkbox","id":"7179:24643","insertions":111,"detachments":0,"files":["kJcKzhKL6nPe1ZSzU7gU85","7cC7thTEEBrQx7CObGEijm"]},{"name":"Col/Sticker","id":"7051:27190","insertions":102,"detachments":0,"files":["kJcKzhKL6nPe1ZSzU7gU85","7cC7thTEEBrQx7CObGEijm"]},{"name":"Object ID","id":"4115:20742","insertions":98,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","tIc4uIdzKiu2GQI0CW19Pe","7cC7thTEEBrQx7CObGEijm"]},{"name":"Color Dot","id":"4114:7975","insertions":97,"detachments":0,"files":["kJcKzhKL6nPe1ZSzU7gU85","HFXHCJCo8ZUK2kj5FsAkuO","cs9zQek6unUhtm8qUoyqpE","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq","7cC7thTEEBrQx7CObGEijm"]},{"name":"Nav.Header","id":"7051:26224","insertions":67,"detachments":0,"files":["kJcKzhKL6nPe1ZSzU7gU85","cs9zQek6unUhtm8qUoyqpE","7cC7thTEEBrQx7CObGEijm"]},{"name":"Toggle","id":"4196:20266","insertions":64,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","kJcKzhKL6nPe1ZSzU7gU85","7ZCyEAUpCp5HldmwE9y9l2","cs9zQek6unUhtm8qUoyqpE","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq","7cC7thTEEBrQx7CObGEijm"]},{"name":"Avatar","id":"7051:25821","insertions":64,"detachments":0,"files":["kJcKzhKL6nPe1ZSzU7gU85","tIc4uIdzKiu2GQI0CW19Pe","7cC7thTEEBrQx7CObGEijm"]},{"name":"Text Input","id":"7051:39989","insertions":62,"detachments":0,"files":["kJcKzhKL6nPe1ZSzU7gU85","7cC7thTEEBrQx7CObGEijm"]},{"name":"Search","id":"7011:9129","insertions":60,"detachments":0,"files":["kJcKzhKL6nPe1ZSzU7gU85","7ZCyEAUpCp5HldmwE9y9l2","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq","7cC7thTEEBrQx7CObGEijm","y4lVwCWNhZWw6st78yr0XH"]},{"name":"<Stepper-Item>","id":"3116:11398","insertions":60,"detachments":0,"files":["7cC7thTEEBrQx7CObGEijm"]},{"name":"Filter Controls","id":"3115:153438","insertions":44,"detachments":0,"files":["7cC7thTEEBrQx7CObGEijm"]},{"name":"Menu.Search","id":"4235:32583","insertions":40,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","kJcKzhKL6nPe1ZSzU7gU85","HFXHCJCo8ZUK2kj5FsAkuO","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq","7cC7thTEEBrQx7CObGEijm"]},{"name":"Menu.Group","id":"7179:25291","insertions":39,"detachments":0,"files":["kJcKzhKL6nPe1ZSzU7gU85","7cC7thTEEBrQx7CObGEijm"]},{"name":"Menu.Counter","id":"4235:32578","insertions":31,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","kJcKzhKL6nPe1ZSzU7gU85","HFXHCJCo8ZUK2kj5FsAkuO","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq","7cC7thTEEBrQx7CObGEijm"]},{"name":"Floating Button","id":"7051:26583","insertions":29,"detachments":0,"files":["kJcKzhKL6nPe1ZSzU7gU85","cs9zQek6unUhtm8qUoyqpE","tIc4uIdzKiu2GQI0CW19Pe"]},{"name":"Chip","id":"7011:28320","insertions":28,"detachments":0,"files":["7ZCyEAUpCp5HldmwE9y9l2","7cC7thTEEBrQx7CObGEijm","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Field.Text","id":"9477:12874","insertions":27,"detachments":0,"files":["7ZCyEAUpCp5HldmwE9y9l2","tIc4uIdzKiu2GQI0CW19Pe","7cC7thTEEBrQx7CObGEijm"]},{"name":"Field.Single Select Dropdown","id":"4080:39707","insertions":26,"detachments":0,"files":["FbsJK4uyKXREfSIGKEXgFq","7cC7thTEEBrQx7CObGEijm"]},{"name":"View Tabs","id":"3115:150211","insertions":25,"detachments":0,"files":["7cC7thTEEBrQx7CObGEijm"]},{"name":"Inline Tabs","id":"7051:26653","insertions":24,"detachments":0,"files":["kJcKzhKL6nPe1ZSzU7gU85","HFXHCJCo8ZUK2kj5FsAkuO","tIc4uIdzKiu2GQI0CW19Pe","7cC7thTEEBrQx7CObGEijm"]},{"name":"Modal.Header","id":"1216:80505","insertions":24,"detachments":0,"files":["tIc4uIdzKiu2GQI0CW19Pe","7cC7thTEEBrQx7CObGEijm"]},{"name":"Status","id":"3115:150783","insertions":24,"detachments":0,"files":["7cC7thTEEBrQx7CObGEijm"]},{"name":"Filter Query","id":"7051:29137","insertions":20,"detachments":0,"files":["kJcKzhKL6nPe1ZSzU7gU85","cs9zQek6unUhtm8qUoyqpE","7cC7thTEEBrQx7CObGEijm"]},{"name":"Page Header","id":"5563:58559","insertions":17,"detachments":0,"files":["cs9zQek6unUhtm8qUoyqpE","7cC7thTEEBrQx7CObGEijm"]},{"name":"Inline Banner","id":"721:13526","insertions":16,"detachments":0,"files":["tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq","7cC7thTEEBrQx7CObGEijm"]},{"name":"Field.Multi Select Dropdown","id":"3116:12595","insertions":16,"detachments":0,"files":["7cC7thTEEBrQx7CObGEijm"]},{"name":"Long Text Input","id":"3116:5671","insertions":16,"detachments":0,"files":["7cC7thTEEBrQx7CObGEijm"]},{"name":"Filter Group","id":"7051:29113","insertions":14,"detachments":0,"files":["kJcKzhKL6nPe1ZSzU7gU85","cs9zQek6unUhtm8qUoyqpE","7cC7thTEEBrQx7CObGEijm"]},{"name":"Menu","id":"7179:25897","insertions":12,"detachments":0,"files":["kJcKzhKL6nPe1ZSzU7gU85","7cC7thTEEBrQx7CObGEijm"]},{"name":"Empty State","id":"9248:66862","insertions":12,"detachments":0,"files":["7ZCyEAUpCp5HldmwE9y9l2","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Radio.Group","id":"2693:113887","insertions":12,"detachments":0,"files":["tIc4uIdzKiu2GQI0CW19Pe"]},{"name":"Account","id":"3115:150737","insertions":12,"detachments":0,"files":["7cC7thTEEBrQx7CObGEijm"]},{"name":"Quick Filter Group","id":"3116:4472","insertions":10,"detachments":0,"files":["7cC7thTEEBrQx7CObGEijm"]},{"name":"Filter Set Container","id":"3116:11248","insertions":9,"detachments":0,"files":["7cC7thTEEBrQx7CObGEijm"]},{"name":"Title Tooltip","id":"721:14014","insertions":8,"detachments":0,"files":["tIc4uIdzKiu2GQI0CW19Pe"]},{"name":"Tootlip.Anchor","id":"721:13974","insertions":8,"detachments":0,"files":["tIc4uIdzKiu2GQI0CW19Pe"]},{"name":"Quick Filter","id":"3116:11438","insertions":8,"detachments":0,"files":["7cC7thTEEBrQx7CObGEijm"]},{"name":"Filter","id":"3116:8517","insertions":6,"detachments":0,"files":["7cC7thTEEBrQx7CObGEijm"]},{"name":"Reactions","id":"3115:151955","insertions":5,"detachments":0,"files":["7cC7thTEEBrQx7CObGEijm"]},{"name":"Inline.Tab.Item","id":"5633:33501","insertions":4,"detachments":0,"files":["tIc4uIdzKiu2GQI0CW19Pe"]},{"name":"Field.TextArea","id":"3116:5569","insertions":4,"detachments":0,"files":["7cC7thTEEBrQx7CObGEijm"]},{"name":"Calender","id":"9248:69135","insertions":2,"detachments":0,"files":["7ZCyEAUpCp5HldmwE9y9l2","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Modal","id":"1412:81235","insertions":1,"detachments":0,"files":["tIc4uIdzKiu2GQI0CW19Pe"]},{"name":"Toolbox","id":"1680:23069","insertions":1,"detachments":0,"files":["tIc4uIdzKiu2GQI0CW19Pe"]},{"name":"Reaction.Item","id":"3115:151944","insertions":1,"detachments":0,"files":["7cC7thTEEBrQx7CObGEijm"]},{"name":"Account Avatar Group","id":"3283:55436","insertions":1,"detachments":0,"files":["7cC7thTEEBrQx7CObGEijm"]},{"name":"Avatar Group","id":"3283:55521","insertions":1,"detachments":0,"files":["7cC7thTEEBrQx7CObGEijm"]},{"name":"Indeterminate Loader","id":"3115:152643","insertions":1,"detachments":0,"files":["7cC7thTEEBrQx7CObGEijm"]}],"weeklyTrend":[]},"arcade":{"totalInsertions":48611,"totalDetachments":0,"components":[{"name":"Response/Block/Table/Cell","id":"4335:34301","insertions":5528,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","kJcKzhKL6nPe1ZSzU7gU85","cs9zQek6unUhtm8qUoyqpE","tIc4uIdzKiu2GQI0CW19Pe"]},{"name":"Menu/Utils/Item/Dropdown Item","id":"4212:22336","insertions":4008,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","7ZCyEAUpCp5HldmwE9y9l2","HFXHCJCo8ZUK2kj5FsAkuO","cs9zQek6unUhtm8qUoyqpE","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq","7cC7thTEEBrQx7CObGEijm","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Glass","id":"2023:4668","insertions":2024,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","kJcKzhKL6nPe1ZSzU7gU85","7ZCyEAUpCp5HldmwE9y9l2","HFXHCJCo8ZUK2kj5FsAkuO","cs9zQek6unUhtm8qUoyqpE","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq","7cC7thTEEBrQx7CObGEijm","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Icon Button / Secondary ","id":"4108:824","insertions":1595,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","kJcKzhKL6nPe1ZSzU7gU85","7ZCyEAUpCp5HldmwE9y9l2","HFXHCJCo8ZUK2kj5FsAkuO","cs9zQek6unUhtm8qUoyqpE","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq","7cC7thTEEBrQx7CObGEijm","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Button / Tertiary","id":"4108:880","insertions":1560,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","kJcKzhKL6nPe1ZSzU7gU85","7ZCyEAUpCp5HldmwE9y9l2","HFXHCJCo8ZUK2kj5FsAkuO","cs9zQek6unUhtm8qUoyqpE","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq","7cC7thTEEBrQx7CObGEijm","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Icon Slot","id":"4114:2760","insertions":1527,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","kJcKzhKL6nPe1ZSzU7gU85","7ZCyEAUpCp5HldmwE9y9l2","HFXHCJCo8ZUK2kj5FsAkuO","cs9zQek6unUhtm8qUoyqpE","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq","7cC7thTEEBrQx7CObGEijm","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Icon Button / Tertiary ","id":"4114:2792","insertions":1468,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","kJcKzhKL6nPe1ZSzU7gU85","7ZCyEAUpCp5HldmwE9y9l2","HFXHCJCo8ZUK2kj5FsAkuO","cs9zQek6unUhtm8qUoyqpE","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq","7cC7thTEEBrQx7CObGEijm","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Window/Leading","id":"4114:4958","insertions":1420,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","kJcKzhKL6nPe1ZSzU7gU85","7ZCyEAUpCp5HldmwE9y9l2","HFXHCJCo8ZUK2kj5FsAkuO","cs9zQek6unUhtm8qUoyqpE","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq","7cC7thTEEBrQx7CObGEijm","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Progressive Divider","id":"4114:5535","insertions":1286,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","kJcKzhKL6nPe1ZSzU7gU85","7ZCyEAUpCp5HldmwE9y9l2","HFXHCJCo8ZUK2kj5FsAkuO","cs9zQek6unUhtm8qUoyqpE","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq","7cC7thTEEBrQx7CObGEijm","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Button / Secondary ","id":"4108:366","insertions":1264,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","kJcKzhKL6nPe1ZSzU7gU85","7ZCyEAUpCp5HldmwE9y9l2","HFXHCJCo8ZUK2kj5FsAkuO","cs9zQek6unUhtm8qUoyqpE","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq","7cC7thTEEBrQx7CObGEijm","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Header","id":"4114:6001","insertions":1242,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","kJcKzhKL6nPe1ZSzU7gU85","7ZCyEAUpCp5HldmwE9y9l2","HFXHCJCo8ZUK2kj5FsAkuO","cs9zQek6unUhtm8qUoyqpE","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq","7cC7thTEEBrQx7CObGEijm","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Window / Trailing","id":"4114:5542","insertions":1219,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","kJcKzhKL6nPe1ZSzU7gU85","7ZCyEAUpCp5HldmwE9y9l2","HFXHCJCo8ZUK2kj5FsAkuO","cs9zQek6unUhtm8qUoyqpE","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq","7cC7thTEEBrQx7CObGEijm","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Line Divider","id":"4114:5143","insertions":1209,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","kJcKzhKL6nPe1ZSzU7gU85","7ZCyEAUpCp5HldmwE9y9l2","HFXHCJCo8ZUK2kj5FsAkuO","cs9zQek6unUhtm8qUoyqpE","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq","7cC7thTEEBrQx7CObGEijm","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Sidebar/Footer","id":"4114:6344","insertions":1202,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","kJcKzhKL6nPe1ZSzU7gU85","7ZCyEAUpCp5HldmwE9y9l2","HFXHCJCo8ZUK2kj5FsAkuO","cs9zQek6unUhtm8qUoyqpE","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq","7cC7thTEEBrQx7CObGEijm","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Desktop/TitleBar","id":"4114:5566","insertions":1107,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","kJcKzhKL6nPe1ZSzU7gU85","7ZCyEAUpCp5HldmwE9y9l2","HFXHCJCo8ZUK2kj5FsAkuO","cs9zQek6unUhtm8qUoyqpE","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq","7cC7thTEEBrQx7CObGEijm","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Trailing Actions","id":"4114:5525","insertions":1087,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","kJcKzhKL6nPe1ZSzU7gU85","7ZCyEAUpCp5HldmwE9y9l2","HFXHCJCo8ZUK2kj5FsAkuO","cs9zQek6unUhtm8qUoyqpE","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq","7cC7thTEEBrQx7CObGEijm","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Content Multiplayer","id":"4114:5978","insertions":930,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","kJcKzhKL6nPe1ZSzU7gU85","7ZCyEAUpCp5HldmwE9y9l2","HFXHCJCo8ZUK2kj5FsAkuO","cs9zQek6unUhtm8qUoyqpE","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq","7cC7thTEEBrQx7CObGEijm","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Sidebar / My Work + Teams + Multiplayer Sidebar","id":"4114:6351","insertions":848,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","kJcKzhKL6nPe1ZSzU7gU85","7ZCyEAUpCp5HldmwE9y9l2","HFXHCJCo8ZUK2kj5FsAkuO","cs9zQek6unUhtm8qUoyqpE","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq","7cC7thTEEBrQx7CObGEijm","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Menu/Item/Content","id":"4212:22319","insertions":843,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","kJcKzhKL6nPe1ZSzU7gU85","7ZCyEAUpCp5HldmwE9y9l2","HFXHCJCo8ZUK2kj5FsAkuO","cs9zQek6unUhtm8qUoyqpE","tIc4uIdzKiu2GQI0CW19Pe","7cC7thTEEBrQx7CObGEijm","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Menu/Utils/Group/Dropdown","id":"4114:5145","insertions":795,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","kJcKzhKL6nPe1ZSzU7gU85","7ZCyEAUpCp5HldmwE9y9l2","HFXHCJCo8ZUK2kj5FsAkuO","cs9zQek6unUhtm8qUoyqpE","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq","7cC7thTEEBrQx7CObGEijm","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Page Footer","id":"4114:8468","insertions":707,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","kJcKzhKL6nPe1ZSzU7gU85","7ZCyEAUpCp5HldmwE9y9l2","HFXHCJCo8ZUK2kj5FsAkuO","cs9zQek6unUhtm8qUoyqpE","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq","7cC7thTEEBrQx7CObGEijm","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Button / Primary ","id":"4115:11542","insertions":593,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","kJcKzhKL6nPe1ZSzU7gU85","7ZCyEAUpCp5HldmwE9y9l2","HFXHCJCo8ZUK2kj5FsAkuO","cs9zQek6unUhtm8qUoyqpE","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq","7cC7thTEEBrQx7CObGEijm","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Response/Block/Table/Header","id":"4381:63432","insertions":588,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","kJcKzhKL6nPe1ZSzU7gU85","cs9zQek6unUhtm8qUoyqpE","tIc4uIdzKiu2GQI0CW19Pe"]},{"name":"Page Header","id":"4114:7950","insertions":583,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","kJcKzhKL6nPe1ZSzU7gU85","7ZCyEAUpCp5HldmwE9y9l2","HFXHCJCo8ZUK2kj5FsAkuO","cs9zQek6unUhtm8qUoyqpE","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq","7cC7thTEEBrQx7CObGEijm","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Organization Selector","id":"4114:4943","insertions":580,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","kJcKzhKL6nPe1ZSzU7gU85","7ZCyEAUpCp5HldmwE9y9l2","HFXHCJCo8ZUK2kj5FsAkuO","cs9zQek6unUhtm8qUoyqpE","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq","7cC7thTEEBrQx7CObGEijm","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Menu/Label","id":"4114:5058","insertions":574,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","7ZCyEAUpCp5HldmwE9y9l2","HFXHCJCo8ZUK2kj5FsAkuO","cs9zQek6unUhtm8qUoyqpE","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq","7cC7thTEEBrQx7CObGEijm","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Modal/Utils/Close","id":"4194:104347","insertions":533,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","kJcKzhKL6nPe1ZSzU7gU85","7ZCyEAUpCp5HldmwE9y9l2","HFXHCJCo8ZUK2kj5FsAkuO","cs9zQek6unUhtm8qUoyqpE","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq","7cC7thTEEBrQx7CObGEijm","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Featured Group","id":"4114:5821","insertions":501,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","kJcKzhKL6nPe1ZSzU7gU85","7ZCyEAUpCp5HldmwE9y9l2","HFXHCJCo8ZUK2kj5FsAkuO","cs9zQek6unUhtm8qUoyqpE","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq","7cC7thTEEBrQx7CObGEijm","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Multi Text Feld","id":"4115:28076","insertions":499,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","kJcKzhKL6nPe1ZSzU7gU85","7ZCyEAUpCp5HldmwE9y9l2","HFXHCJCo8ZUK2kj5FsAkuO","cs9zQek6unUhtm8qUoyqpE","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Chat Group (Multiplayer Only)","id":"4114:5961","insertions":462,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","kJcKzhKL6nPe1ZSzU7gU85","7ZCyEAUpCp5HldmwE9y9l2","HFXHCJCo8ZUK2kj5FsAkuO","cs9zQek6unUhtm8qUoyqpE","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq","7cC7thTEEBrQx7CObGEijm","y4lVwCWNhZWw6st78yr0XH"]},{"name":"User Profile Dropdown","id":"4114:4874","insertions":458,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","kJcKzhKL6nPe1ZSzU7gU85","7ZCyEAUpCp5HldmwE9y9l2","HFXHCJCo8ZUK2kj5FsAkuO","cs9zQek6unUhtm8qUoyqpE","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq","7cC7thTEEBrQx7CObGEijm","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Computer Input Field","id":"4114:7784","insertions":409,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","kJcKzhKL6nPe1ZSzU7gU85","7ZCyEAUpCp5HldmwE9y9l2","HFXHCJCo8ZUK2kj5FsAkuO","cs9zQek6unUhtm8qUoyqpE","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq","7cC7thTEEBrQx7CObGEijm","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Modal/Utils/Header","id":"4194:104333","insertions":390,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","kJcKzhKL6nPe1ZSzU7gU85","7ZCyEAUpCp5HldmwE9y9l2","HFXHCJCo8ZUK2kj5FsAkuO","cs9zQek6unUhtm8qUoyqpE","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq","7cC7thTEEBrQx7CObGEijm","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Modal/Utils/Footer","id":"4115:11788","insertions":369,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","kJcKzhKL6nPe1ZSzU7gU85","7ZCyEAUpCp5HldmwE9y9l2","HFXHCJCo8ZUK2kj5FsAkuO","cs9zQek6unUhtm8qUoyqpE","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq","7cC7thTEEBrQx7CObGEijm","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Keyboard Shortcut","id":"4212:22329","insertions":310,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","HFXHCJCo8ZUK2kj5FsAkuO","cs9zQek6unUhtm8qUoyqpE","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Desktop","id":"5230:90530","insertions":303,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","7ZCyEAUpCp5HldmwE9y9l2","HFXHCJCo8ZUK2kj5FsAkuO","cs9zQek6unUhtm8qUoyqpE","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq","7cC7thTEEBrQx7CObGEijm","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Chat Item","id":"4245:31249","insertions":299,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","kJcKzhKL6nPe1ZSzU7gU85","7ZCyEAUpCp5HldmwE9y9l2","HFXHCJCo8ZUK2kj5FsAkuO","tIc4uIdzKiu2GQI0CW19Pe","y4lVwCWNhZWw6st78yr0XH"]},{"name":"AgentTimeline/Title","id":"4114:5321","insertions":270,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","kJcKzhKL6nPe1ZSzU7gU85","7ZCyEAUpCp5HldmwE9y9l2","HFXHCJCo8ZUK2kj5FsAkuO","cs9zQek6unUhtm8qUoyqpE","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq","7cC7thTEEBrQx7CObGEijm","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Input Effects","id":"4114:7838","insertions":270,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","kJcKzhKL6nPe1ZSzU7gU85","7ZCyEAUpCp5HldmwE9y9l2","HFXHCJCo8ZUK2kj5FsAkuO","cs9zQek6unUhtm8qUoyqpE","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq","7cC7thTEEBrQx7CObGEijm","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Scroll Area","id":"4114:7626","insertions":257,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","kJcKzhKL6nPe1ZSzU7gU85","7ZCyEAUpCp5HldmwE9y9l2","HFXHCJCo8ZUK2kj5FsAkuO","cs9zQek6unUhtm8qUoyqpE","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq","7cC7thTEEBrQx7CObGEijm","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Content Teams","id":"4663:80908","insertions":253,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","kJcKzhKL6nPe1ZSzU7gU85","7ZCyEAUpCp5HldmwE9y9l2","HFXHCJCo8ZUK2kj5FsAkuO","cs9zQek6unUhtm8qUoyqpE","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Tabs / Item","id":"9002:75167","insertions":248,"detachments":0,"files":["7ZCyEAUpCp5HldmwE9y9l2","HFXHCJCo8ZUK2kj5FsAkuO","cs9zQek6unUhtm8qUoyqpE","FbsJK4uyKXREfSIGKEXgFq","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Aside","id":"4114:8656","insertions":247,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","kJcKzhKL6nPe1ZSzU7gU85","7ZCyEAUpCp5HldmwE9y9l2","HFXHCJCo8ZUK2kj5FsAkuO","cs9zQek6unUhtm8qUoyqpE","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq","7cC7thTEEBrQx7CObGEijm","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Computer/Effects/PaperShadow","id":"4116:32417","insertions":244,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","kJcKzhKL6nPe1ZSzU7gU85","7ZCyEAUpCp5HldmwE9y9l2","HFXHCJCo8ZUK2kj5FsAkuO","cs9zQek6unUhtm8qUoyqpE","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Sidebar / Multiplayer Sidebar","id":"4217:17186","insertions":199,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","kJcKzhKL6nPe1ZSzU7gU85","HFXHCJCo8ZUK2kj5FsAkuO","cs9zQek6unUhtm8qUoyqpE","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq","7cC7thTEEBrQx7CObGEijm"]},{"name":"App Icon","id":"5230:90524","insertions":197,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","7ZCyEAUpCp5HldmwE9y9l2","HFXHCJCo8ZUK2kj5FsAkuO","cs9zQek6unUhtm8qUoyqpE","tIc4uIdzKiu2GQI0CW19Pe","7cC7thTEEBrQx7CObGEijm","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Row / Column / Chevron","id":"4740:101214","insertions":189,"detachments":0,"files":["kJcKzhKL6nPe1ZSzU7gU85","HFXHCJCo8ZUK2kj5FsAkuO","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Menu/Dropdown Menu","id":"4114:5155","insertions":180,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","kJcKzhKL6nPe1ZSzU7gU85","7ZCyEAUpCp5HldmwE9y9l2","HFXHCJCo8ZUK2kj5FsAkuO","cs9zQek6unUhtm8qUoyqpE","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq","7cC7thTEEBrQx7CObGEijm","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Computer/Effects/BaseOverlay","id":"4116:32570","insertions":173,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","kJcKzhKL6nPe1ZSzU7gU85","7ZCyEAUpCp5HldmwE9y9l2","HFXHCJCo8ZUK2kj5FsAkuO","cs9zQek6unUhtm8qUoyqpE","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Header / Tab Bar","id":"4114:7945","insertions":173,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","7ZCyEAUpCp5HldmwE9y9l2","HFXHCJCo8ZUK2kj5FsAkuO","cs9zQek6unUhtm8qUoyqpE","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq","7cC7thTEEBrQx7CObGEijm","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Switcher / Checkbox","id":"7001:154651","insertions":166,"detachments":0,"files":["kJcKzhKL6nPe1ZSzU7gU85","7ZCyEAUpCp5HldmwE9y9l2","HFXHCJCo8ZUK2kj5FsAkuO","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Icons / Placeholder","id":"4565:67592","insertions":164,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","kJcKzhKL6nPe1ZSzU7gU85","7ZCyEAUpCp5HldmwE9y9l2","HFXHCJCo8ZUK2kj5FsAkuO","cs9zQek6unUhtm8qUoyqpE","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Header / Title Bar","id":"4114:7915","insertions":161,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","7ZCyEAUpCp5HldmwE9y9l2","HFXHCJCo8ZUK2kj5FsAkuO","cs9zQek6unUhtm8qUoyqpE","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq","7cC7thTEEBrQx7CObGEijm","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Field Wrapper","id":"5134:74900","insertions":158,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","7ZCyEAUpCp5HldmwE9y9l2","HFXHCJCo8ZUK2kj5FsAkuO","cs9zQek6unUhtm8qUoyqpE","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq","y4lVwCWNhZWw6st78yr0XH"]},{"name":"User Avatar + Status","id":"4373:37536","insertions":155,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","kJcKzhKL6nPe1ZSzU7gU85","7ZCyEAUpCp5HldmwE9y9l2","HFXHCJCo8ZUK2kj5FsAkuO","cs9zQek6unUhtm8qUoyqpE","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq","7cC7thTEEBrQx7CObGEijm","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Modal/Utils/Title","id":"7558:8532","insertions":138,"detachments":0,"files":["kJcKzhKL6nPe1ZSzU7gU85","7ZCyEAUpCp5HldmwE9y9l2","HFXHCJCo8ZUK2kj5FsAkuO","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Timeline/Title/v0/Ongoing Chat","id":"4116:31391","insertions":132,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","HFXHCJCo8ZUK2kj5FsAkuO","cs9zQek6unUhtm8qUoyqpE","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Modal/Overlay","id":"5965:52160","insertions":130,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","kJcKzhKL6nPe1ZSzU7gU85","7ZCyEAUpCp5HldmwE9y9l2","HFXHCJCo8ZUK2kj5FsAkuO","cs9zQek6unUhtm8qUoyqpE","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq","7cC7thTEEBrQx7CObGEijm","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Text Area","id":"7001:155276","insertions":129,"detachments":0,"files":["kJcKzhKL6nPe1ZSzU7gU85","7ZCyEAUpCp5HldmwE9y9l2","HFXHCJCo8ZUK2kj5FsAkuO","cs9zQek6unUhtm8qUoyqpE","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq","7cC7thTEEBrQx7CObGEijm","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Segmented Control / Item","id":"9002:71316","insertions":128,"detachments":0,"files":["7ZCyEAUpCp5HldmwE9y9l2","cs9zQek6unUhtm8qUoyqpE","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq"]},{"name":"Inline Banner","id":"4698:43452","insertions":121,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","7ZCyEAUpCp5HldmwE9y9l2","HFXHCJCo8ZUK2kj5FsAkuO","cs9zQek6unUhtm8qUoyqpE","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq","7cC7thTEEBrQx7CObGEijm","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Chip","id":"4196:20151","insertions":120,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","kJcKzhKL6nPe1ZSzU7gU85","7ZCyEAUpCp5HldmwE9y9l2","cs9zQek6unUhtm8qUoyqpE","FbsJK4uyKXREfSIGKEXgFq","7cC7thTEEBrQx7CObGEijm","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Modal Content","id":"7558:8554","insertions":118,"detachments":0,"files":["kJcKzhKL6nPe1ZSzU7gU85","7ZCyEAUpCp5HldmwE9y9l2","HFXHCJCo8ZUK2kj5FsAkuO","cs9zQek6unUhtm8qUoyqpE","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq","7cC7thTEEBrQx7CObGEijm","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Desktop/TitleBar With Tabs","id":"9482:14332","insertions":118,"detachments":0,"files":["7ZCyEAUpCp5HldmwE9y9l2","HFXHCJCo8ZUK2kj5FsAkuO","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Chrome Tab Strip","id":"9482:13717","insertions":118,"detachments":0,"files":["7ZCyEAUpCp5HldmwE9y9l2","HFXHCJCo8ZUK2kj5FsAkuO","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Switcher/Toggle","id":"4196:18110","insertions":113,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","kJcKzhKL6nPe1ZSzU7gU85","7ZCyEAUpCp5HldmwE9y9l2","HFXHCJCo8ZUK2kj5FsAkuO","cs9zQek6unUhtm8qUoyqpE","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Menu/Utils/Search","id":"4335:34190","insertions":105,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","kJcKzhKL6nPe1ZSzU7gU85","7ZCyEAUpCp5HldmwE9y9l2","HFXHCJCo8ZUK2kj5FsAkuO","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Text Field","id":"5134:74788","insertions":96,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","kJcKzhKL6nPe1ZSzU7gU85","7ZCyEAUpCp5HldmwE9y9l2","HFXHCJCo8ZUK2kj5FsAkuO","cs9zQek6unUhtm8qUoyqpE","FbsJK4uyKXREfSIGKEXgFq"]},{"name":"Chrome Tab Item","id":"9482:13527","insertions":96,"detachments":0,"files":["7ZCyEAUpCp5HldmwE9y9l2","HFXHCJCo8ZUK2kj5FsAkuO","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Dropdown Button / Secondary ","id":"9002:75345","insertions":94,"detachments":0,"files":["7ZCyEAUpCp5HldmwE9y9l2","HFXHCJCo8ZUK2kj5FsAkuO","tIc4uIdzKiu2GQI0CW19Pe","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Web/Header","id":"4503:65542","insertions":93,"detachments":0,"files":["cs9zQek6unUhtm8qUoyqpE","tIc4uIdzKiu2GQI0CW19Pe","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Item","id":"4245:30912","insertions":90,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","kJcKzhKL6nPe1ZSzU7gU85","7ZCyEAUpCp5HldmwE9y9l2","HFXHCJCo8ZUK2kj5FsAkuO","tIc4uIdzKiu2GQI0CW19Pe","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Progressive Blur","id":"4663:79932","insertions":87,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","7ZCyEAUpCp5HldmwE9y9l2","HFXHCJCo8ZUK2kj5FsAkuO","cs9zQek6unUhtm8qUoyqpE","FbsJK4uyKXREfSIGKEXgFq","7cC7thTEEBrQx7CObGEijm","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Contained Row","id":"7001:155017","insertions":84,"detachments":0,"files":["kJcKzhKL6nPe1ZSzU7gU85","HFXHCJCo8ZUK2kj5FsAkuO"]},{"name":"Tabs","id":"9002:75180","insertions":84,"detachments":0,"files":["7ZCyEAUpCp5HldmwE9y9l2","HFXHCJCo8ZUK2kj5FsAkuO","cs9zQek6unUhtm8qUoyqpE","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq","y4lVwCWNhZWw6st78yr0XH"]},{"name":"My Work Group","id":"4855:48305","insertions":81,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","7ZCyEAUpCp5HldmwE9y9l2","HFXHCJCo8ZUK2kj5FsAkuO","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Team Group","id":"4855:48433","insertions":81,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","7ZCyEAUpCp5HldmwE9y9l2","HFXHCJCo8ZUK2kj5FsAkuO","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Page","id":"4212:25936","insertions":75,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","HFXHCJCo8ZUK2kj5FsAkuO","cs9zQek6unUhtm8qUoyqpE","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq","7cC7thTEEBrQx7CObGEijm"]},{"name":"Dropdown Button / Tertiary ","id":"4012:45225","insertions":69,"detachments":0,"files":["HFXHCJCo8ZUK2kj5FsAkuO","cs9zQek6unUhtm8qUoyqpE","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Attachments/Item/File","id":"4114:6484","insertions":64,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","7ZCyEAUpCp5HldmwE9y9l2","HFXHCJCo8ZUK2kj5FsAkuO","cs9zQek6unUhtm8qUoyqpE","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Icons / Chevron.Down","id":"7194:62406","insertions":64,"detachments":0,"files":["7ZCyEAUpCp5HldmwE9y9l2","HFXHCJCo8ZUK2kj5FsAkuO","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Chat Page","id":"4564:30745","insertions":64,"detachments":0,"files":["HFXHCJCo8ZUK2kj5FsAkuO","cs9zQek6unUhtm8qUoyqpE","tIc4uIdzKiu2GQI0CW19Pe","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Computer/Logo","id":"4012:45887","insertions":61,"detachments":0,"files":["HFXHCJCo8ZUK2kj5FsAkuO","cs9zQek6unUhtm8qUoyqpE","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Dot","id":"6138:25148","insertions":57,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","kJcKzhKL6nPe1ZSzU7gU85","7ZCyEAUpCp5HldmwE9y9l2","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Badge","id":"4747:34471","insertions":56,"detachments":0,"files":["tIc4uIdzKiu2GQI0CW19Pe","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Progress/Bar","id":"2023:7023","insertions":54,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","kJcKzhKL6nPe1ZSzU7gU85","HFXHCJCo8ZUK2kj5FsAkuO","cs9zQek6unUhtm8qUoyqpE","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Attachments/Group","id":"4116:32463","insertions":50,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","kJcKzhKL6nPe1ZSzU7gU85","7ZCyEAUpCp5HldmwE9y9l2","HFXHCJCo8ZUK2kj5FsAkuO","cs9zQek6unUhtm8qUoyqpE","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Computer/Logomark/Animated","id":"4373:37120","insertions":50,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","7ZCyEAUpCp5HldmwE9y9l2","HFXHCJCo8ZUK2kj5FsAkuO","cs9zQek6unUhtm8qUoyqpE","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Modal","id":"7558:8569","insertions":45,"detachments":0,"files":["kJcKzhKL6nPe1ZSzU7gU85","7ZCyEAUpCp5HldmwE9y9l2","cs9zQek6unUhtm8qUoyqpE","FbsJK4uyKXREfSIGKEXgFq","7cC7thTEEBrQx7CObGEijm"]},{"name":"Indentation","id":"4012:42969","insertions":45,"detachments":0,"files":["HFXHCJCo8ZUK2kj5FsAkuO"]},{"name":"Chat Page.Header","id":"6138:26245","insertions":43,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","cs9zQek6unUhtm8qUoyqpE","tIc4uIdzKiu2GQI0CW19Pe","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Team Avatars","id":"4740:104132","insertions":43,"detachments":0,"files":["kJcKzhKL6nPe1ZSzU7gU85","HFXHCJCo8ZUK2kj5FsAkuO","FbsJK4uyKXREfSIGKEXgFq","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Button Group","id":"9224:44256","insertions":42,"detachments":0,"files":["7ZCyEAUpCp5HldmwE9y9l2","HFXHCJCo8ZUK2kj5FsAkuO","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Chat Group","id":"4855:48580","insertions":38,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","7ZCyEAUpCp5HldmwE9y9l2","HFXHCJCo8ZUK2kj5FsAkuO","FbsJK4uyKXREfSIGKEXgFq","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Starred Group","id":"6025:22422","insertions":37,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","7ZCyEAUpCp5HldmwE9y9l2","HFXHCJCo8ZUK2kj5FsAkuO","FbsJK4uyKXREfSIGKEXgFq","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Avatar Circle","id":"4001:3376","insertions":37,"detachments":0,"files":["HFXHCJCo8ZUK2kj5FsAkuO","cs9zQek6unUhtm8qUoyqpE","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq","7cC7thTEEBrQx7CObGEijm","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Toast","id":"4001:13659","insertions":37,"detachments":0,"files":["cs9zQek6unUhtm8qUoyqpE","tIc4uIdzKiu2GQI0CW19Pe"]},{"name":"Form / Section Divider","id":"9002:76760","insertions":35,"detachments":0,"files":["7ZCyEAUpCp5HldmwE9y9l2","HFXHCJCo8ZUK2kj5FsAkuO","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Breadcrumb","id":"4114:7903","insertions":29,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","HFXHCJCo8ZUK2kj5FsAkuO","cs9zQek6unUhtm8qUoyqpE","FbsJK4uyKXREfSIGKEXgFq"]},{"name":"Switcher/Handle","id":"5930:39728","insertions":29,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","kJcKzhKL6nPe1ZSzU7gU85","7ZCyEAUpCp5HldmwE9y9l2","HFXHCJCo8ZUK2kj5FsAkuO","cs9zQek6unUhtm8qUoyqpE","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Segmented Controls","id":"9002:71325","insertions":28,"detachments":0,"files":["7ZCyEAUpCp5HldmwE9y9l2","cs9zQek6unUhtm8qUoyqpE","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq"]},{"name":"Icons / MCP","id":"7502:5999","insertions":27,"detachments":0,"files":["kJcKzhKL6nPe1ZSzU7gU85","7ZCyEAUpCp5HldmwE9y9l2","HFXHCJCo8ZUK2kj5FsAkuO"]},{"name":"Pictograms / Team / Heart","id":"4012:49766","insertions":27,"detachments":0,"files":["HFXHCJCo8ZUK2kj5FsAkuO","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Scrollbar","id":"7502:6079","insertions":25,"detachments":0,"files":["kJcKzhKL6nPe1ZSzU7gU85","7ZCyEAUpCp5HldmwE9y9l2","HFXHCJCo8ZUK2kj5FsAkuO","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Button / Destructive","id":"9002:68771","insertions":25,"detachments":0,"files":["7ZCyEAUpCp5HldmwE9y9l2","HFXHCJCo8ZUK2kj5FsAkuO","tIc4uIdzKiu2GQI0CW19Pe"]},{"name":"Selects/Single Select Field","id":"9477:48231","insertions":25,"detachments":0,"files":["7ZCyEAUpCp5HldmwE9y9l2","cs9zQek6unUhtm8qUoyqpE","FbsJK4uyKXREfSIGKEXgFq"]},{"name":"Message Row","id":"4001:13271","insertions":25,"detachments":0,"files":["HFXHCJCo8ZUK2kj5FsAkuO","cs9zQek6unUhtm8qUoyqpE","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Group / Header","id":"4245:31037","insertions":23,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","kJcKzhKL6nPe1ZSzU7gU85","7ZCyEAUpCp5HldmwE9y9l2","HFXHCJCo8ZUK2kj5FsAkuO","tIc4uIdzKiu2GQI0CW19Pe","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Computer Item","id":"4245:31443","insertions":23,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","kJcKzhKL6nPe1ZSzU7gU85","7ZCyEAUpCp5HldmwE9y9l2","HFXHCJCo8ZUK2kj5FsAkuO","tIc4uIdzKiu2GQI0CW19Pe","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Avatar Stack Linear","id":"4001:66550","insertions":23,"detachments":0,"files":["HFXHCJCo8ZUK2kj5FsAkuO","cs9zQek6unUhtm8qUoyqpE","FbsJK4uyKXREfSIGKEXgFq","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Filter Picker / Tickets","id":"5965:53560","insertions":22,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","HFXHCJCo8ZUK2kj5FsAkuO","FbsJK4uyKXREfSIGKEXgFq","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Row / Column / Content / Header","id":"4740:101253","insertions":22,"detachments":0,"files":["kJcKzhKL6nPe1ZSzU7gU85","HFXHCJCo8ZUK2kj5FsAkuO","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Response","id":"9002:70986","insertions":22,"detachments":0,"files":["7ZCyEAUpCp5HldmwE9y9l2","tIc4uIdzKiu2GQI0CW19Pe"]},{"name":"Card / Metadata / Seperator","id":"4012:43673","insertions":22,"detachments":0,"files":["HFXHCJCo8ZUK2kj5FsAkuO","FbsJK4uyKXREfSIGKEXgFq","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Headlines / Page Headline | Centered","id":"4001:24881","insertions":19,"detachments":0,"files":["HFXHCJCo8ZUK2kj5FsAkuO","cs9zQek6unUhtm8qUoyqpE","FbsJK4uyKXREfSIGKEXgFq","7cC7thTEEBrQx7CObGEijm","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Avatar Square","id":"4245:30556","insertions":18,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","kJcKzhKL6nPe1ZSzU7gU85","7ZCyEAUpCp5HldmwE9y9l2","HFXHCJCo8ZUK2kj5FsAkuO","tIc4uIdzKiu2GQI0CW19Pe","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Icons / Chevron.Right","id":"4681:59692","insertions":18,"detachments":0,"files":["kJcKzhKL6nPe1ZSzU7gU85","FbsJK4uyKXREfSIGKEXgFq","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Icon Button / Primary ","id":"7062:82516","insertions":18,"detachments":0,"files":["7ZCyEAUpCp5HldmwE9y9l2","tIc4uIdzKiu2GQI0CW19Pe"]},{"name":"Tooltip","id":"4375:37918","insertions":17,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","7ZCyEAUpCp5HldmwE9y9l2","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Form / Section","id":"4012:43857","insertions":17,"detachments":0,"files":["HFXHCJCo8ZUK2kj5FsAkuO","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Chat Input","id":"4897:53119","insertions":16,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","cs9zQek6unUhtm8qUoyqpE","tIc4uIdzKiu2GQI0CW19Pe","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Menu/Label/Multiple Select","id":"7001:155096","insertions":16,"detachments":0,"files":["kJcKzhKL6nPe1ZSzU7gU85","HFXHCJCo8ZUK2kj5FsAkuO"]},{"name":"Cursor","id":"4001:10426","insertions":16,"detachments":0,"files":["HFXHCJCo8ZUK2kj5FsAkuO","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq"]},{"name":"Form / Section Title","id":"4012:43851","insertions":16,"detachments":0,"files":["HFXHCJCo8ZUK2kj5FsAkuO"]},{"name":"Skeleton","id":"4566:48657","insertions":15,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j"]},{"name":"Menu/Utils/Group/Multi Select Group","id":"7001:154759","insertions":15,"detachments":0,"files":["kJcKzhKL6nPe1ZSzU7gU85","HFXHCJCo8ZUK2kj5FsAkuO"]},{"name":"Response/Follow Ups","id":"4001:14039","insertions":14,"detachments":0,"files":["HFXHCJCo8ZUK2kj5FsAkuO","tIc4uIdzKiu2GQI0CW19Pe","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Expressive Chip","id":"4490:34022","insertions":14,"detachments":0,"files":["HFXHCJCo8ZUK2kj5FsAkuO","FbsJK4uyKXREfSIGKEXgFq","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Dialog Content","id":"5965:52184","insertions":13,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","kJcKzhKL6nPe1ZSzU7gU85","7ZCyEAUpCp5HldmwE9y9l2","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Dialog/Utils/Title","id":"5965:52165","insertions":13,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","kJcKzhKL6nPe1ZSzU7gU85","7ZCyEAUpCp5HldmwE9y9l2","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Dialog/Utils/Footer","id":"5965:52175","insertions":13,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","kJcKzhKL6nPe1ZSzU7gU85","7ZCyEAUpCp5HldmwE9y9l2","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Card / Top Bar","id":"4012:43739","insertions":13,"detachments":0,"files":["HFXHCJCo8ZUK2kj5FsAkuO","FbsJK4uyKXREfSIGKEXgFq","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Integrations","id":"4115:12252","insertions":12,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","7ZCyEAUpCp5HldmwE9y9l2","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Progress/Loader","id":"4332:34336","insertions":12,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","cs9zQek6unUhtm8qUoyqpE","FbsJK4uyKXREfSIGKEXgFq"]},{"name":"Tooltip/Content","id":"4375:37903","insertions":12,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","7ZCyEAUpCp5HldmwE9y9l2","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Response/Block/Table/Field","id":"4381:63438","insertions":12,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","tIc4uIdzKiu2GQI0CW19Pe"]},{"name":"Account Avatar","id":"5908:27460","insertions":12,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","HFXHCJCo8ZUK2kj5FsAkuO","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq"]},{"name":"Page Body","id":"6025:23467","insertions":12,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","HFXHCJCo8ZUK2kj5FsAkuO","FbsJK4uyKXREfSIGKEXgFq"]},{"name":"Section Banner","id":"4001:172334","insertions":12,"detachments":0,"files":["HFXHCJCo8ZUK2kj5FsAkuO","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Response/Block/Paragraph","id":"4503:55487","insertions":12,"detachments":0,"files":["cs9zQek6unUhtm8qUoyqpE","tIc4uIdzKiu2GQI0CW19Pe","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Icons / Cross","id":"4566:53311","insertions":11,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","HFXHCJCo8ZUK2kj5FsAkuO","cs9zQek6unUhtm8qUoyqpE","FbsJK4uyKXREfSIGKEXgFq"]},{"name":"Plastic","id":"7062:77245","insertions":11,"detachments":0,"files":["7ZCyEAUpCp5HldmwE9y9l2","cs9zQek6unUhtm8qUoyqpE","tIc4uIdzKiu2GQI0CW19Pe"]},{"name":"Card / Content","id":"4012:43636","insertions":11,"detachments":0,"files":["HFXHCJCo8ZUK2kj5FsAkuO","FbsJK4uyKXREfSIGKEXgFq","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Card / Byline","id":"4012:43680","insertions":11,"detachments":0,"files":["HFXHCJCo8ZUK2kj5FsAkuO","FbsJK4uyKXREfSIGKEXgFq","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Card / Byline / Owner","id":"4012:43668","insertions":11,"detachments":0,"files":["HFXHCJCo8ZUK2kj5FsAkuO","FbsJK4uyKXREfSIGKEXgFq","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Card / Byline / Team","id":"4012:43670","insertions":11,"detachments":0,"files":["HFXHCJCo8ZUK2kj5FsAkuO","FbsJK4uyKXREfSIGKEXgFq","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Card / Byline / Status","id":"4012:43675","insertions":11,"detachments":0,"files":["HFXHCJCo8ZUK2kj5FsAkuO","FbsJK4uyKXREfSIGKEXgFq","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Card / Metadata / Item","id":"4012:43677","insertions":11,"detachments":0,"files":["HFXHCJCo8ZUK2kj5FsAkuO","FbsJK4uyKXREfSIGKEXgFq","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Computer/Effects/FogLight","id":"5908:27529","insertions":10,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","HFXHCJCo8ZUK2kj5FsAkuO","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq"]},{"name":"Row / Column / Assignee","id":"7001:155010","insertions":10,"detachments":0,"files":["kJcKzhKL6nPe1ZSzU7gU85","HFXHCJCo8ZUK2kj5FsAkuO","FbsJK4uyKXREfSIGKEXgFq"]},{"name":"Accordion","id":"4012:43865","insertions":10,"detachments":0,"files":["HFXHCJCo8ZUK2kj5FsAkuO"]},{"name":"Avatar Count Circle","id":"4503:53540","insertions":10,"detachments":0,"files":["cs9zQek6unUhtm8qUoyqpE","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Response/Footer","id":"3020:128777","insertions":10,"detachments":0,"files":["tIc4uIdzKiu2GQI0CW19Pe","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Computer/Effects/SpotlightEllipse","id":"4114:7832","insertions":9,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","HFXHCJCo8ZUK2kj5FsAkuO","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq"]},{"name":"Icons / Info.Circle","id":"5615:23628","insertions":9,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","cs9zQek6unUhtm8qUoyqpE","FbsJK4uyKXREfSIGKEXgFq"]},{"name":"Desktop App","id":"4012:50002","insertions":9,"detachments":0,"files":["HFXHCJCo8ZUK2kj5FsAkuO"]},{"name":"Contained List Controls","id":"4012:55849","insertions":9,"detachments":0,"files":["HFXHCJCo8ZUK2kj5FsAkuO"]},{"name":"Threads","id":"4001:13240","insertions":9,"detachments":0,"files":["HFXHCJCo8ZUK2kj5FsAkuO","cs9zQek6unUhtm8qUoyqpE","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Response/Block/List","id":"4503:55685","insertions":9,"detachments":0,"files":["cs9zQek6unUhtm8qUoyqpE","tIc4uIdzKiu2GQI0CW19Pe"]},{"name":"Response/Block/Leading","id":"3020:127950","insertions":9,"detachments":0,"files":["tIc4uIdzKiu2GQI0CW19Pe","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Pictograms / Team / Speaker","id":"4740:100003","insertions":8,"detachments":0,"files":["kJcKzhKL6nPe1ZSzU7gU85","HFXHCJCo8ZUK2kj5FsAkuO","FbsJK4uyKXREfSIGKEXgFq"]},{"name":"Toggle Item","id":"9375:6687","insertions":8,"detachments":0,"files":["7ZCyEAUpCp5HldmwE9y9l2"]},{"name":"Form / Sub Section Title","id":"4012:45118","insertions":8,"detachments":0,"files":["HFXHCJCo8ZUK2kj5FsAkuO"]},{"name":"Row / Column / Team","id":"7001:155004","insertions":7,"detachments":0,"files":["kJcKzhKL6nPe1ZSzU7gU85","HFXHCJCo8ZUK2kj5FsAkuO","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Row / Column / Timestamp","id":"7001:155013","insertions":7,"detachments":0,"files":["kJcKzhKL6nPe1ZSzU7gU85","FbsJK4uyKXREfSIGKEXgFq"]},{"name":"Icons / Plus","id":"9002:67539","insertions":7,"detachments":0,"files":["7ZCyEAUpCp5HldmwE9y9l2","HFXHCJCo8ZUK2kj5FsAkuO","tIc4uIdzKiu2GQI0CW19Pe"]},{"name":"Menu/Utils/Item/Single Select Item","id":"7001:154830","insertions":6,"detachments":0,"files":["kJcKzhKL6nPe1ZSzU7gU85"]},{"name":"Icons / Three.Horizontal.Lines","id":"7061:41911","insertions":6,"detachments":0,"files":["7ZCyEAUpCp5HldmwE9y9l2","tIc4uIdzKiu2GQI0CW19Pe","7cC7thTEEBrQx7CObGEijm"]},{"name":"Icons / AgentStudio™️","id":"5563:59720","insertions":6,"detachments":0,"files":["cs9zQek6unUhtm8qUoyqpE","tIc4uIdzKiu2GQI0CW19Pe"]},{"name":"Computer/Effects/Blur","id":"2425:107579","insertions":6,"detachments":0,"files":["tIc4uIdzKiu2GQI0CW19Pe"]},{"name":"Row / Column / Account","id":"4145:28402","insertions":6,"detachments":0,"files":["FbsJK4uyKXREfSIGKEXgFq"]},{"name":"Row / Column / Key","id":"4145:28423","insertions":6,"detachments":0,"files":["FbsJK4uyKXREfSIGKEXgFq"]},{"name":"Team Object ID","id":"4145:28409","insertions":6,"detachments":0,"files":["FbsJK4uyKXREfSIGKEXgFq"]},{"name":"Thumbnail","id":"4763:39049","insertions":6,"detachments":0,"files":["FbsJK4uyKXREfSIGKEXgFq","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Empty State","id":"4855:43223","insertions":5,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","7ZCyEAUpCp5HldmwE9y9l2"]},{"name":"Icons / Sidebar.Left","id":"4012:48405","insertions":5,"detachments":0,"files":["HFXHCJCo8ZUK2kj5FsAkuO","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Popover","id":"5315:86820","insertions":5,"detachments":0,"files":["y4lVwCWNhZWw6st78yr0XH"]},{"name":"Icons / Plus.Squares","id":"4698:45417","insertions":4,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","tIc4uIdzKiu2GQI0CW19Pe","FbsJK4uyKXREfSIGKEXgFq"]},{"name":"Dialog","id":"5965:52188","insertions":4,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","FbsJK4uyKXREfSIGKEXgFq"]},{"name":"Icons / Forward.Slash.Tray","id":"4740:101300","insertions":4,"detachments":0,"files":["kJcKzhKL6nPe1ZSzU7gU85","FbsJK4uyKXREfSIGKEXgFq","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Icons / Shapes","id":"9002:67491","insertions":4,"detachments":0,"files":["7ZCyEAUpCp5HldmwE9y9l2","tIc4uIdzKiu2GQI0CW19Pe"]},{"name":"Pictograms / Team / Envelope","id":"4001:181613","insertions":4,"detachments":0,"files":["HFXHCJCo8ZUK2kj5FsAkuO","tIc4uIdzKiu2GQI0CW19Pe"]},{"name":"Dropdown Button / Primary ","id":"4555:103337","insertions":4,"detachments":0,"files":["HFXHCJCo8ZUK2kj5FsAkuO","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Spot Banner","id":"5315:86746","insertions":4,"detachments":0,"files":["y4lVwCWNhZWw6st78yr0XH"]},{"name":"Icons / Chevron.Up","id":"5615:23483","insertions":3,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Row / Column / Icon","id":"7001:154954","insertions":3,"detachments":0,"files":["kJcKzhKL6nPe1ZSzU7gU85","HFXHCJCo8ZUK2kj5FsAkuO"]},{"name":"Settings Sub-Navigation List","id":"4012:43819","insertions":3,"detachments":0,"files":["HFXHCJCo8ZUK2kj5FsAkuO"]},{"name":"Icons / Chart.Top","id":"4001:173405","insertions":3,"detachments":0,"files":["HFXHCJCo8ZUK2kj5FsAkuO","FbsJK4uyKXREfSIGKEXgFq"]},{"name":"Response/Block/Table","id":"4381:63446","insertions":2,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","tIc4uIdzKiu2GQI0CW19Pe"]},{"name":"User Avatar Stack Pill","id":"6138:26028","insertions":2,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Icons / Three.Vertical.Dots","id":"9186:34184","insertions":2,"detachments":0,"files":["7ZCyEAUpCp5HldmwE9y9l2"]},{"name":"Headlines / Page Headline | Justified","id":"4012:45556","insertions":2,"detachments":0,"files":["HFXHCJCo8ZUK2kj5FsAkuO"]},{"name":"Accordion Group","id":"4012:43911","insertions":2,"detachments":0,"files":["HFXHCJCo8ZUK2kj5FsAkuO"]},{"name":"Bubble","id":"4503:54264","insertions":2,"detachments":0,"files":["cs9zQek6unUhtm8qUoyqpE"]},{"name":"Topic/Menu/Search","id":"4859:26742","insertions":2,"detachments":0,"files":["tIc4uIdzKiu2GQI0CW19Pe"]},{"name":"Computer/Utils/Cursor/Blinking","id":"3020:127618","insertions":2,"detachments":0,"files":["tIc4uIdzKiu2GQI0CW19Pe"]},{"name":"Source/QuickSearch","id":"4859:46391","insertions":2,"detachments":0,"files":["tIc4uIdzKiu2GQI0CW19Pe"]},{"name":"Response/Thinking","id":"4749:56213","insertions":2,"detachments":0,"files":["tIc4uIdzKiu2GQI0CW19Pe","y4lVwCWNhZWw6st78yr0XH"]},{"name":"Cursor MacOS26","id":"5270:40427","insertions":2,"detachments":0,"files":["y4lVwCWNhZWw6st78yr0XH"]},{"name":"TableWidget","id":"4381:62988","insertions":1,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j"]},{"name":"Menu/Combobox","id":"4917:47247","insertions":1,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j"]},{"name":"View Controls","id":"4855:50544","insertions":1,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j"]},{"name":"Accordion/ _Slot","id":"5615:23470","insertions":1,"detachments":0,"files":["tybtnX97n3qW3IBBilTl1j"]},{"name":"Row / Column / Chip Group","id":"7540:9023","insertions":1,"detachments":0,"files":["kJcKzhKL6nPe1ZSzU7gU85"]},{"name":"Icons / Checkmark","id":"9248:62367","insertions":1,"detachments":0,"files":["7ZCyEAUpCp5HldmwE9y9l2"]},{"name":"Icons / Build","id":"4001:173393","insertions":1,"detachments":0,"files":["HFXHCJCo8ZUK2kj5FsAkuO"]},{"name":"Icons / Play","id":"4001:171248","insertions":1,"detachments":0,"files":["HFXHCJCo8ZUK2kj5FsAkuO"]},{"name":"Icons / Arrow.Top.Tray","id":"4235:34382","insertions":1,"detachments":0,"files":["HFXHCJCo8ZUK2kj5FsAkuO"]},{"name":"Topic/Menu/Group","id":"4859:26913","insertions":1,"detachments":0,"files":["tIc4uIdzKiu2GQI0CW19Pe"]},{"name":"Source/Search","id":"4859:46360","insertions":1,"detachments":0,"files":["tIc4uIdzKiu2GQI0CW19Pe"]},{"name":"Source/ItemGroup","id":"4859:46377","insertions":1,"detachments":0,"files":["tIc4uIdzKiu2GQI0CW19Pe"]},{"name":"Container","id":"3020:129166","insertions":1,"detachments":0,"files":["tIc4uIdzKiu2GQI0CW19Pe"]},{"name":"Thinking/Text Loop","id":"4749:56167","insertions":1,"detachments":0,"files":["tIc4uIdzKiu2GQI0CW19Pe"]},{"name":"Source/Item","id":"3366:160690","insertions":1,"detachments":0,"files":["tIc4uIdzKiu2GQI0CW19Pe"]},{"name":"Source/Types","id":"3366:160594","insertions":1,"detachments":0,"files":["tIc4uIdzKiu2GQI0CW19Pe"]},{"name":"Account.List","id":"4145:28525","insertions":1,"detachments":0,"files":["FbsJK4uyKXREfSIGKEXgFq"]},{"name":"Icons / Building","id":"4145:28046","insertions":1,"detachments":0,"files":["FbsJK4uyKXREfSIGKEXgFq"]},{"name":"Computer/Logomark/Static","id":"3120:10493","insertions":1,"detachments":0,"files":["7cC7thTEEBrQx7CObGEijm"]},{"name":"Avatar/Computer","id":"4010:13605","insertions":1,"detachments":0,"files":["y4lVwCWNhZWw6st78yr0XH"]}],"weeklyTrend":[]},"fileBreakdown":[{"fileKey":"tybtnX97n3qW3IBBilTl1j","fileName":"AS - Bulk testing","dlsCount":201,"arcadeCount":6949,"arcadeRatio":0.9718881118881119},{"fileKey":"kJcKzhKL6nPe1ZSzU7gU85","fileName":"AS - Knowledge","dlsCount":2109,"arcadeCount":1929,"arcadeRatio":0.47771173848439824},{"fileKey":"7ZCyEAUpCp5HldmwE9y9l2","fileName":"AS - MCP","dlsCount":467,"arcadeCount":4727,"arcadeRatio":0.9100885637273778},{"fileKey":"HFXHCJCo8ZUK2kj5FsAkuO","fileName":"AS - Settings","dlsCount":78,"arcadeCount":5871,"arcadeRatio":0.9868885526979324},{"fileKey":"cs9zQek6unUhtm8qUoyqpE","fileName":"AS - Versioning","dlsCount":207,"arcadeCount":8103,"arcadeRatio":0.9750902527075812},{"fileKey":"tIc4uIdzKiu2GQI0CW19Pe","fileName":"Agent Studio","dlsCount":2989,"arcadeCount":13453,"arcadeRatio":0.8182094635689089},{"fileKey":"FbsJK4uyKXREfSIGKEXgFq","fileName":"Agent Studio - Source of Truth","dlsCount":354,"arcadeCount":3726,"arcadeRatio":0.913235294117647},{"fileKey":"7cC7thTEEBrQx7CObGEijm","fileName":"Agent Builder","dlsCount":9261,"arcadeCount":523,"arcadeRatio":0.053454619787408016},{"fileKey":"y4lVwCWNhZWw6st78yr0XH","fileName":"C - May Release","dlsCount":101,"arcadeCount":3564,"arcadeRatio":0.9724420190995907}]},
@@ -997,6 +1217,14 @@ window.__DS_OBSERVATORY_DATA__ = {
   }
   function fmtPct(v) { return v.toFixed(1) + '%'; }
   function fmtNum(n) { return n.toLocaleString(); }
+  var _MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  function _ord(d) { if (d > 3 && d < 21) return 'th'; switch (d % 10) { case 1: return 'st'; case 2: return 'nd'; case 3: return 'rd'; default: return 'th'; } }
+  function fmtDate(iso) {
+    var parts = iso.slice(0, 10).split('-');
+    var mon = _MONTHS[parseInt(parts[1], 10) - 1] || parts[1];
+    var day = parseInt(parts[2], 10);
+    return mon + ' ' + day + _ord(day);
+  }
 
   function el(tag, attrs, children) {
     var e = document.createElement(tag);
@@ -1089,10 +1317,13 @@ window.__DS_OBSERVATORY_DATA__ = {
     var arcadeAdoption = pct(totalArcade, totalDS || 1);
     var detachRate = pct(totalDetached, totalComponentSurface || 1);
 
+    var healthScore = Math.round(0.4 * dsCoverage + 0.35 * arcadeAdoption + 0.25 * (100 - detachRate));
+
     return {
       dsCoverage: dsCoverage,
       arcadeAdoption: arcadeAdoption,
       detachRate: detachRate,
+      healthScore: healthScore,
       totalDS: totalDS,
       totalArcade: totalArcade,
       totalDetached: totalDetached,
@@ -1101,7 +1332,288 @@ window.__DS_OBSERVATORY_DATA__ = {
     };
   }
 
+  function computeFileHealth(file) {
+    var b = file.breakdown;
+    var suspected = suspectedCount(file);
+    var surface = (file.componentSurface + suspected) || 1;
+    var dsTotal = b.dsArcade + b.dsDls + b.dsOther;
+    var dsCoverage = pct(dsTotal, surface);
+    var arcadeAdoption = pct(b.dsArcade, dsTotal || 1);
+    var detachRate = pct(b.detached + suspected, surface);
+    var healthScore = Math.round(0.4 * dsCoverage + 0.35 * arcadeAdoption + 0.25 * (100 - detachRate));
+    return {
+      fileKey: file.fileKey,
+      fileName: file.fileName,
+      dsCoverage: dsCoverage,
+      arcadeAdoption: arcadeAdoption,
+      detachRate: detachRate,
+      healthScore: healthScore,
+      surface: surface,
+    };
+  }
+
   // ---- Tab 1: Design Coverage ----
+
+  function scoreColor(score) {
+    if (score >= 70) return COLORS.arcade;
+    if (score >= 50) return COLORS.bang;
+    return COLORS.detached;
+  }
+
+  function renderHealthHero(metrics, prevMetrics) {
+    var container = document.getElementById('health-hero');
+    if (!container) return;
+    container.innerHTML = '';
+
+    var items = [
+      { label: 'Health score', value: String(metrics.healthScore), prev: prevMetrics ? prevMetrics.healthScore : null, color: scoreColor(metrics.healthScore) },
+      { label: 'DS coverage', value: fmtPct(metrics.dsCoverage), prev: prevMetrics ? prevMetrics.dsCoverage : null },
+      { label: 'Arcade adoption', value: fmtPct(metrics.arcadeAdoption), prev: prevMetrics ? prevMetrics.arcadeAdoption : null },
+      { label: 'Detachment rate', value: '~' + fmtPct(metrics.detachRate), prev: prevMetrics ? prevMetrics.detachRate : null, invert: true },
+    ];
+
+    items.forEach(function (item) {
+      var trendHtml = '';
+      if (item.prev !== null && item.prev !== undefined) {
+        var curr = parseFloat(item.value);
+        var diff = item.invert ? item.prev - curr : curr - item.prev;
+        if (Math.abs(diff) > 0.5) {
+          var cls = diff > 0 ? 'trend-up' : 'trend-down';
+          var arrow = diff > 0 ? '\u2191' : '\u2193';
+          trendHtml = ' <span class="' + cls + '">' + arrow + '</span>';
+        }
+      }
+      var valueStyle = item.color ? 'color:' + item.color : '';
+      container.appendChild(el('div', { className: 'health-card' }, [
+        el('div', { className: 'health-card-label', textContent: item.label }),
+        el('div', { className: 'health-card-value', innerHTML: item.value + trendHtml, style: valueStyle }),
+      ]));
+    });
+  }
+
+  function renderLeaderboard(audit, snapshots) {
+    var container = document.getElementById('leaderboard');
+    if (!container) return;
+    container.innerHTML = '';
+
+    var files = audit && audit.files ? audit.files : [];
+    if (!files.length) {
+      container.innerHTML = '<div class="heatmap-empty">No file data available</div>';
+      return;
+    }
+
+    // Compute health scores for current files
+    var fileScores = files.map(function (f) { return computeFileHealth(f); });
+    fileScores.sort(function (a, b) { return b.healthScore - a.healthScore; });
+
+    // Get previous snapshot's file scores for trend
+    var prevScoreMap = {};
+    if (snapshots && snapshots.length >= 2) {
+      var prevSnap = snapshots[snapshots.length - 2];
+      if (prevSnap && prevSnap.audit && prevSnap.audit.files) {
+        prevSnap.audit.files.forEach(function (f) {
+          var h = computeFileHealth(f);
+          prevScoreMap[h.fileKey] = h.healthScore;
+        });
+      }
+    }
+
+    // Legend
+    var legend = el('div', { className: 'leaderboard-legend' });
+    [{ label: 'Arcade', color: COLORS.arcade }, { label: 'DLS', color: COLORS.dls }, { label: 'Other', color: COLORS.other }].forEach(function (item) {
+      legend.appendChild(el('span', { className: 'heatmap-legend-item' }, [
+        el('span', { className: 'heatmap-legend-dot', style: 'background:' + item.color }),
+        el('span', { textContent: item.label }),
+      ]));
+    });
+    container.appendChild(legend);
+
+    fileScores.forEach(function (fs, i) {
+      var prevScore = prevScoreMap[fs.fileKey];
+      var trendEl;
+      if (prevScore !== undefined) {
+        var diff = fs.healthScore - prevScore;
+        if (diff > 1) trendEl = el('span', { className: 'leaderboard-trend trend-up', textContent: '\u2191' });
+        else if (diff < -1) trendEl = el('span', { className: 'leaderboard-trend trend-down', textContent: '\u2193' });
+        else trendEl = el('span', { className: 'leaderboard-trend trend-flat', textContent: '\u2014' });
+      } else {
+        trendEl = el('span', { className: 'leaderboard-trend', textContent: '' });
+      }
+
+      // Mini bar showing arcade/dls/other proportions of DS instances
+      var file = files.find(function (f) { return f.fileKey === fs.fileKey; });
+      var bar = el('div', { className: 'leaderboard-bar-wrap' });
+      if (file) {
+        var b = file.breakdown;
+        var dsTotal = b.dsArcade + b.dsDls + b.dsOther;
+        if (dsTotal > 0) {
+          bar.appendChild(el('div', { style: 'width:' + pct(b.dsArcade, dsTotal) + '%;background:' + COLORS.arcade }));
+          bar.appendChild(el('div', { style: 'width:' + pct(b.dsDls, dsTotal) + '%;background:' + COLORS.dls }));
+          bar.appendChild(el('div', { style: 'width:' + pct(b.dsOther, dsTotal) + '%;background:' + COLORS.other }));
+        }
+      }
+
+      var row = el('div', { className: 'leaderboard-row' }, [
+        el('span', { className: 'leaderboard-rank', textContent: String(i + 1) }),
+        el('span', { className: 'leaderboard-name', textContent: fs.fileName, title: fs.fileName }),
+        bar,
+        el('span', { className: 'leaderboard-score', textContent: String(fs.healthScore), style: 'color:' + scoreColor(fs.healthScore) }),
+        trendEl,
+        el('span', { className: 'leaderboard-details' }, [
+          el('span', { className: 'leaderboard-detail', textContent: fmtPct(fs.dsCoverage) + ' cov' }),
+          el('span', { className: 'leaderboard-detail', textContent: fmtPct(fs.arcadeAdoption) + ' arc' }),
+          el('span', { className: 'leaderboard-detail', textContent: '~' + fmtPct(fs.detachRate) + ' det' }),
+        ]),
+      ]);
+      container.appendChild(row);
+    });
+  }
+
+  function renderActivityGrid(snapshots) {
+    var card = document.getElementById('activity-card');
+    var container = document.getElementById('activity-grid');
+    if (!container || !card) return;
+
+    var snapsToUse = snapshots.filter(function (s) {
+      return s.audit && s.audit.files && s.audit.files.length > 0;
+    });
+    if (snapsToUse.length < 2) { card.style.display = 'none'; return; }
+    card.style.display = '';
+
+    // Build 52 weekly columns ending on current week
+    var now = new Date();
+    var weeks = [];
+    // Start from 51 weeks ago (Monday of that week)
+    var startDay = new Date(now);
+    startDay.setDate(startDay.getDate() - startDay.getDay() + 1 - 51 * 7); // Monday 51 weeks ago
+    for (var w = 0; w < 52; w++) {
+      var weekStart = new Date(startDay);
+      weekStart.setDate(weekStart.getDate() + w * 7);
+      var weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekEnd.getDate() + 6);
+      var key = weekStart.toISOString().slice(0, 10);
+      weeks.push({
+        key: key,
+        start: weekStart,
+        end: weekEnd,
+        month: weekStart.getMonth(),
+        year: weekStart.getFullYear(),
+      });
+    }
+
+    // Determine month label positions (first week of each month)
+    var monthLabels = []; // { index, label }
+    var prevMonth = -1;
+    weeks.forEach(function (wk, i) {
+      if (wk.month !== prevMonth) {
+        monthLabels.push({ index: i, label: _MONTHS[wk.month] });
+        prevMonth = wk.month;
+      }
+    });
+
+    // Bucket snapshots into weeks — latest per file per week
+    // weekData[weekIndex][fileName] = { level, health }
+    var weekData = [];
+    for (var wi = 0; wi < 52; wi++) weekData.push({});
+
+    var allFiles = {};
+    snapsToUse.forEach(function (snap) {
+      var snapDate = new Date(snap.timestamp.slice(0, 10).replace(/-/g, '/'));
+      // Find which week this snapshot belongs to
+      for (var i = 51; i >= 0; i--) {
+        if (snapDate >= weeks[i].start && snapDate <= weeks[i].end) {
+          snap.audit.files.forEach(function (f) {
+            var name = f.fileName || f.fileKey;
+            allFiles[name] = true;
+            var h = computeFileHealth(f);
+            var level = 0;
+            if (h.healthScore >= 75) level = 4;
+            else if (h.healthScore >= 60) level = 3;
+            else if (h.healthScore >= 45) level = 2;
+            else level = 1;
+            weekData[i][name] = { level: level, health: h };
+          });
+          break;
+        }
+      }
+    });
+    var fileNames = Object.keys(allFiles).sort();
+
+    container.innerHTML = '';
+
+    // Month labels header
+    var headerRow = el('div', { className: 'activity-row' });
+    headerRow.appendChild(el('span', { className: 'activity-label', textContent: '' }));
+    var headerCells = el('div', { className: 'activity-cells' });
+    weeks.forEach(function (wk, i) {
+      var mlabel = monthLabels.find(function (m) { return m.index === i; });
+      headerCells.appendChild(el('span', {
+        className: 'activity-month-label',
+        textContent: mlabel ? mlabel.label : '',
+      }));
+    });
+    headerRow.appendChild(headerCells);
+    container.appendChild(headerRow);
+
+    // One row per file
+    fileNames.forEach(function (fileName) {
+      var row = el('div', { className: 'activity-row' });
+      row.appendChild(el('span', { className: 'activity-label', textContent: fileName, title: fileName }));
+      var cells = el('div', { className: 'activity-cells' });
+
+      weeks.forEach(function (wk, i) {
+        var entry = weekData[i][fileName];
+        var level = entry ? entry.level : 0;
+        var weekLabel = fmtDate(wk.key);
+        var tip;
+        if (entry) {
+          var h = entry.health;
+          tip = fileName + '\nWeek of ' + weekLabel + '\nHealth: ' + h.healthScore + ' \u2014 DS ' + fmtPct(h.dsCoverage) + ', Arcade ' + fmtPct(h.arcadeAdoption) + ', Detach ' + fmtPct(h.detachRate);
+        } else {
+          tip = fileName + '\nWeek of ' + weekLabel + '\nNo data';
+        }
+        cells.appendChild(el('div', {
+          className: 'activity-cell',
+          dataset: { level: String(level), tip: tip },
+        }));
+      });
+      row.appendChild(cells);
+      container.appendChild(row);
+    });
+
+    // Legend
+    var legend = el('div', { className: 'activity-grid-legend' });
+    legend.appendChild(el('span', { textContent: 'Less' }));
+    [0, 1, 2, 3, 4].forEach(function (lvl) {
+      legend.appendChild(el('div', { className: 'activity-cell', dataset: { level: String(lvl) } }));
+    });
+    legend.appendChild(el('span', { textContent: 'More healthy' }));
+    container.appendChild(legend);
+  }
+
+  // Instant tooltip for activity grid cells and leaderboard rows
+  (function initGridTooltip() {
+    var tip = document.getElementById('grid-tooltip');
+    if (!tip) return;
+    document.addEventListener('mouseover', function (e) {
+      var cell = e.target.closest('[data-tip]');
+      if (!cell) { tip.classList.remove('visible'); return; }
+      tip.textContent = cell.dataset.tip;
+      tip.classList.add('visible');
+      var rect = cell.getBoundingClientRect();
+      var tipRect = tip.getBoundingClientRect();
+      var left = rect.left + rect.width / 2 - tipRect.width / 2;
+      var top = rect.top - tipRect.height - 6;
+      if (top < 4) top = rect.bottom + 6;
+      if (left < 4) left = 4;
+      if (left + tipRect.width > window.innerWidth - 4) left = window.innerWidth - tipRect.width - 4;
+      tip.style.left = left + 'px';
+      tip.style.top = top + 'px';
+    });
+    document.addEventListener('mouseout', function (e) {
+      if (e.target.closest('[data-tip]')) tip.classList.remove('visible');
+    });
+  })();
 
   function renderMetricCards(metrics) {
     var container = document.getElementById('metric-cards');
@@ -1298,7 +1810,7 @@ window.__DS_OBSERVATORY_DATA__ = {
     ctx.scale(dpr, dpr);
     ctx.clearRect(0, 0, w, h);
 
-    var padL = 48, padR = 20, padT = 20, padB = 44;
+    var padL = 48, padR = 56, padT = 20, padB = 44;
     var cw = w - padL - padR;
     var ch = h - padT - padB;
 
@@ -1324,9 +1836,7 @@ window.__DS_OBSERVATORY_DATA__ = {
     points.forEach(function (p, i) {
       if (i % xStep === 0 || i === points.length - 1) {
         var px = padL + (i / (points.length - 1)) * cw;
-        // Show date portion only
-        var dateLabel = p.label.slice(0, 10);
-        ctx.fillText(dateLabel, px, h - padB + 20);
+        ctx.fillText(fmtDate(p.label), px, h - padB + 20);
       }
     });
 
@@ -1402,6 +1912,15 @@ window.__DS_OBSERVATORY_DATA__ = {
   function filterInventory(items, filter) {
     if (filter === 'all') return items;
     if (filter === 'both') return items.filter(function (i) { return i.libraries.length > 1; });
+    if (filter === 'friction') return items.filter(function (i) {
+      if (i.libraries.indexOf('arcade') < 0 && i.insertions > 5) return true;
+      if (i.libraries.length > 1) {
+        var arcIns = 0;
+        i.variants.forEach(function (v) { if (v.library === 'arcade') arcIns += v.insertions; });
+        if (arcIns / i.insertions < 0.3) return true;
+      }
+      return false;
+    });
     return items.filter(function (i) { return i.libraries.indexOf(filter) >= 0 && i.libraries.length === 1; });
   }
 
@@ -1411,7 +1930,8 @@ window.__DS_OBSERVATORY_DATA__ = {
       var av, bv;
       if (key === 'name') { av = a.name.toLowerCase(); bv = b.name.toLowerCase(); return av < bv ? -1 * mult : av > bv ? mult : 0; }
       if (key === 'library') { av = a.libraries.join(','); bv = b.libraries.join(','); return av < bv ? -1 * mult : av > bv ? mult : 0; }
-      if (key === 'insertions') { av = a.insertions; bv = b.insertions; }
+      if (key === 'variants') { av = a.variants.length; bv = b.variants.length; }
+      else if (key === 'insertions') { av = a.insertions; bv = b.insertions; }
       else if (key === 'files') { av = a.files.length; bv = b.files.length; }
       else { av = 0; bv = 0; }
       return (av - bv) * mult;
@@ -1441,19 +1961,29 @@ window.__DS_OBSERVATORY_DATA__ = {
           ? '<span class="badge arcade">Arcade</span>'
           : '<span class="badge dls">DLS</span>';
 
+      // Friction hotspot indicator
+      var frictionBadge = '';
+      var arcadeInsertions = 0;
+      item.variants.forEach(function (v) { if (v.library === 'arcade') arcadeInsertions += v.insertions; });
+      var arcadeRatio = item.insertions > 0 ? arcadeInsertions / item.insertions : 0;
+
+      if (item.libraries.indexOf('arcade') < 0 && item.insertions > 5) {
+        frictionBadge = '<span class="friction-badge friction-high" data-tip="No Arcade equivalent exists.\n' + fmtNum(item.insertions) + ' DLS insertions across ' + item.files.length + ' files need migration.">DLS only</span>';
+      } else if (item.libraries.length > 1 && arcadeRatio < 0.3) {
+        frictionBadge = '<span class="friction-badge friction-medium" data-tip="Arcade variant exists but accounts for only ' + Math.round(arcadeRatio * 100) + '% of usage.\n' + fmtNum(arcadeInsertions) + ' Arcade vs ' + fmtNum(item.insertions - arcadeInsertions) + ' DLS insertions.">' + Math.round(arcadeRatio * 100) + '% Arcade</span>';
+      }
+
       var tr = el('tr', {
         className: state.expandedRow === item.name ? 'expanded-parent' : '',
         style: 'cursor:pointer',
       });
 
       tr.innerHTML =
-        '<td>' + escapeHtml(item.name) +
-          '<span style="color:hsl(320,2%,64%);font-size:11px;margin-left:6px">' +
-          item.variants.length + (item.variants.length === 1 ? ' variant' : ' variants') +
-          '</span></td>' +
+        '<td>' + escapeHtml(item.name) + frictionBadge + '</td>' +
         '<td>' + libBadge + '</td>' +
-        '<td>' + fmtNum(item.insertions) + '</td>' +
-        '<td>' + item.files.length + '</td>';
+        '<td class="num">' + item.variants.length + '</td>' +
+        '<td class="num">' + fmtNum(item.insertions) + '</td>' +
+        '<td class="num">' + item.files.length + '</td>';
 
       tr.addEventListener('click', function () {
         state.expandedRow = state.expandedRow === item.name ? null : item.name;
@@ -1465,7 +1995,7 @@ window.__DS_OBSERVATORY_DATA__ = {
       // Expand row — show variants + files
       if (state.expandedRow === item.name) {
         var expandTr = el('tr', { className: 'expand-row' });
-        var td = el('td', { colspan: '4' });
+        var td = el('td', { colspan: '5' });
 
         // Variant list
         var variantsSorted = item.variants.slice().sort(function (a, b) { return b.insertions - a.insertions; });
@@ -1516,7 +2046,7 @@ window.__DS_OBSERVATORY_DATA__ = {
 
     if (sorted.length === 0) {
       var empty = el('tr');
-      empty.innerHTML = '<td colspan="4" style="text-align:center;padding:24px;color:hsl(320, 2%, 64%);">No components match this filter</td>';
+      empty.innerHTML = '<td colspan="5" style="text-align:center;padding:24px;color:hsl(320, 2%, 64%);">No components match this filter</td>';
       tbody.appendChild(empty);
     }
   }
@@ -1751,6 +2281,7 @@ window.__DS_OBSERVATORY_DATA__ = {
   function renderMigrationChart(analytics) {
     var canvas = document.getElementById('migration-chart');
     if (!canvas) return;
+    var chartCard = canvas.closest('.card');
     var ctx = canvas.getContext('2d');
 
     var weeks = [];
@@ -1759,20 +2290,10 @@ window.__DS_OBSERVATORY_DATA__ = {
     }
 
     if (weeks.length < 2) {
-      // Placeholder
-      ctx.font = '14px system-ui, sans-serif';
-      ctx.fillStyle = 'hsl(320, 2%, 64%)';
-      ctx.textAlign = 'center';
-      var dpr = window.devicePixelRatio || 1;
-      var w = canvas.parentElement.clientWidth || 800;
-      canvas.width = w * dpr;
-      canvas.height = 240 * dpr;
-      canvas.style.width = w + 'px';
-      canvas.style.height = '240px';
-      ctx.scale(dpr, dpr);
-      ctx.fillText('Trend data will appear after multiple collection runs', w / 2, 120);
+      if (chartCard) chartCard.style.display = 'none';
       return;
     }
+    if (chartCard) chartCard.style.display = '';
 
     var series = weeks.map(function (w) {
       return { label: w.week, value: w.insertions };
@@ -2004,7 +2525,7 @@ window.__DS_OBSERVATORY_DATA__ = {
     if (meta.querySelector('select')) return;
     var parts = [];
     if (analytics && analytics.collectedAt) {
-      parts.push('Collected ' + analytics.collectedAt.slice(0, 10));
+      parts.push('Collected ' + fmtDate(analytics.collectedAt));
     }
     if (audit && audit.files) {
       parts.push(audit.files.length + ' files');
@@ -2029,9 +2550,20 @@ window.__DS_OBSERVATORY_DATA__ = {
 
     // Tab 1: Design Coverage
     var metrics = computeMetrics(analytics, audit);
-    renderMetricCards(metrics);
-    renderHeatmap(audit);
+
+    // Compute previous metrics for trend arrows
+    var prevMetrics = null;
+    if (state.snapshots && state.snapshots.length >= 2) {
+      var prevSnap = state.snapshots[state.snapshots.length - 2];
+      if (prevSnap && prevSnap.audit) {
+        prevMetrics = computeMetrics(prevSnap.analytics, prevSnap.audit);
+      }
+    }
+
+    renderHealthHero(metrics, prevMetrics);
+    renderLeaderboard(audit, state.snapshots);
     renderTrendChart(state.snapshots);
+    renderActivityGrid(state.snapshots);
 
     // Tab 2: Component Inventory
     state.expandedRow = null;
@@ -2055,7 +2587,7 @@ window.__DS_OBSERVATORY_DATA__ = {
 
     // "Latest" option
     var latestDate = state._latestAnalytics && state._latestAnalytics.collectedAt
-      ? state._latestAnalytics.collectedAt.slice(0, 10)
+      ? fmtDate(state._latestAnalytics.collectedAt)
       : 'latest';
     var fileCount = state._latestAudit && state._latestAudit.files ? state._latestAudit.files.length : 0;
     select.appendChild(el('option', { value: 'latest', textContent: latestDate + ' \u00b7 ' + fileCount + ' files (latest)' }));
@@ -2063,9 +2595,8 @@ window.__DS_OBSERVATORY_DATA__ = {
     // Snapshot options newest-first
     snapshots.slice().reverse().forEach(function (snap, i) {
       var idx = snapshots.length - 1 - i;
-      var snapDate = snap.timestamp.slice(0, 10);
       var snapFiles = snap.audit && snap.audit.files ? snap.audit.files.length : 0;
-      select.appendChild(el('option', { value: String(idx), textContent: snapDate + ' \u00b7 ' + snapFiles + ' files' }));
+      select.appendChild(el('option', { value: String(idx), textContent: fmtDate(snap.timestamp) + ' \u00b7 ' + snapFiles + ' files' }));
     });
 
     select.addEventListener('change', function () {
