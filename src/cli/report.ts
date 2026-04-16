@@ -156,8 +156,27 @@ export async function reportCommand(options: ReportOptions): Promise<void> {
 
   const dashboardDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../dashboard');
   const html = await fs.readFile(path.join(dashboardDir, 'index.html'), 'utf-8');
-  const css = await fs.readFile(path.join(dashboardDir, 'styles.css'), 'utf-8');
+  let css = await fs.readFile(path.join(dashboardDir, 'styles.css'), 'utf-8');
   const js = await fs.readFile(path.join(dashboardDir, 'app.js'), 'utf-8');
+
+  // Embed font files as base64 data URLs for self-contained report
+  const fontFiles = [
+    { name: 'Chip_Text_Variable-Regular.ttf', format: 'truetype' },
+    { name: 'Chip_Display_Variable-Regular.ttf', format: 'truetype' },
+    { name: 'Chip_Mono-Regular.ttf', format: 'truetype' },
+  ];
+  for (const font of fontFiles) {
+    try {
+      const fontData = await fs.readFile(path.join(dashboardDir, font.name));
+      const b64 = fontData.toString('base64');
+      css = css.replace(
+        `url('${font.name}') format('${font.format}')`,
+        `url('data:font/ttf;base64,${b64}') format('${font.format}')`,
+      );
+    } catch {
+      console.warn(`Font file ${font.name} not found, skipping embedding`);
+    }
+  }
 
   const report = html
     .replace(

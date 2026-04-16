@@ -230,19 +230,49 @@
     return COLORS.detached;
   }
 
+  // File health card palette (matched to shuiguo-100 bg)
+  var FH_COLORS = {
+    arcade:   '#009261',
+    dls:      '#155d7c',
+    other:    'hsl(var(--shuiguo-500))',
+    detached: '#FF8ADC',
+    scoreHigh: '#009261',
+    scoreMid:  '#8b6200',
+    scoreLow:  '#FF8ADC',
+  };
+
   function renderHealthHero(metrics, prevMetrics) {
     var container = document.getElementById('health-hero');
     if (!container) return;
     container.innerHTML = '';
 
-    var items = [
-      { label: 'Health score', value: String(metrics.healthScore), prev: prevMetrics ? prevMetrics.healthScore : null, color: scoreColor(metrics.healthScore) },
-      { label: 'DS coverage', value: fmtPct(metrics.dsCoverage), prev: prevMetrics ? prevMetrics.dsCoverage : null },
-      { label: 'Arcade adoption', value: fmtPct(metrics.arcadeAdoption), prev: prevMetrics ? prevMetrics.arcadeAdoption : null },
-      { label: 'Detachment rate', value: '~' + fmtPct(metrics.detachRate), prev: prevMetrics ? prevMetrics.detachRate : null, invert: true },
+    // --- Featured card: Health score ---
+    var heroTrend = '';
+    if (prevMetrics && prevMetrics.healthScore !== null) {
+      var heroDiff = metrics.healthScore - prevMetrics.healthScore;
+      if (Math.abs(heroDiff) > 0.5) {
+        var heroCls = heroDiff > 0 ? 'trend-up' : 'trend-down';
+        var heroArrow = heroDiff > 0 ? '\u2191' : '\u2193';
+        heroTrend = ' <span class="' + heroCls + '">' + heroArrow + Math.abs(Math.round(heroDiff)) + '</span>';
+      }
+    }
+
+    var featured = el('div', { className: 'health-card-featured' });
+    var featuredLeft = el('div');
+    featuredLeft.appendChild(el('div', { className: 'health-card-label', textContent: 'Health score' }));
+    featuredLeft.appendChild(el('div', { className: 'health-card-value', innerHTML: String(metrics.healthScore) + heroTrend }));
+    featured.appendChild(featuredLeft);
+    container.appendChild(featured);
+
+    // --- Secondary cards ---
+    var secondaryItems = [
+      { label: 'DS coverage', value: fmtPct(metrics.dsCoverage), prev: prevMetrics ? prevMetrics.dsCoverage : null, tint: 'tint-shuiguo' },
+      { label: 'Arcade adoption', value: fmtPct(metrics.arcadeAdoption), prev: prevMetrics ? prevMetrics.arcadeAdoption : null, tint: 'tint-hardy' },
+      { label: 'Detachment rate', value: '~' + fmtPct(metrics.detachRate), prev: prevMetrics ? prevMetrics.detachRate : null, invert: true, tint: 'tint-persimmon' },
     ];
 
-    items.forEach(function (item) {
+    var secondaryRow = el('div', { className: 'health-hero-secondary' });
+    secondaryItems.forEach(function (item) {
       var trendHtml = '';
       if (item.prev !== null && item.prev !== undefined) {
         var curr = parseFloat(item.value);
@@ -253,12 +283,12 @@
           trendHtml = ' <span class="' + cls + '">' + arrow + '</span>';
         }
       }
-      var valueStyle = item.color ? 'color:' + item.color : '';
-      container.appendChild(el('div', { className: 'health-card' }, [
+      secondaryRow.appendChild(el('div', { className: 'health-card ' + item.tint }, [
         el('div', { className: 'health-card-label', textContent: item.label }),
-        el('div', { className: 'health-card-value', innerHTML: item.value + trendHtml, style: valueStyle }),
+        el('div', { className: 'health-card-value', innerHTML: item.value + trendHtml }),
       ]));
     });
+    container.appendChild(secondaryRow);
   }
 
   function renderLeaderboard(audit, snapshots) {
@@ -268,15 +298,28 @@
 
     var files = audit && audit.files ? audit.files : [];
     if (!files.length) {
-      container.innerHTML = '<div class="heatmap-empty">No file data available</div>';
+      container.innerHTML = '<div class="cg-files-title">File health</div><div class="heatmap-empty">No file data available</div>';
       return;
     }
 
-    // Compute health scores for current files
+    // Title
+    container.appendChild(el('div', { className: 'cg-files-title', textContent: 'File health' }));
+
+    // Legend
+    var legend = el('div', { className: 'cg-files-legend' });
+    [{ label: 'Arcade', color: FH_COLORS.arcade }, { label: 'DLS', color: FH_COLORS.dls }, { label: 'Other', color: FH_COLORS.other }, { label: 'Detached', color: FH_COLORS.detached }].forEach(function (item) {
+      legend.appendChild(el('span', { className: 'cg-files-legend-item' }, [
+        el('span', { className: 'cg-files-legend-dot', style: 'background:' + item.color }),
+        el('span', { textContent: item.label }),
+      ]));
+    });
+    container.appendChild(legend);
+
+    // Compute health scores
     var fileScores = files.map(function (f) { return computeFileHealth(f); });
     fileScores.sort(function (a, b) { return b.healthScore - a.healthScore; });
 
-    // Get previous snapshot's file scores for trend
+    // Previous snapshot scores for trend
     var prevScoreMap = {};
     if (snapshots && snapshots.length >= 2) {
       var prevSnap = snapshots[snapshots.length - 2];
@@ -288,55 +331,53 @@
       }
     }
 
-    // Legend
-    var legend = el('div', { className: 'leaderboard-legend' });
-    [{ label: 'Arcade', color: COLORS.arcade }, { label: 'DLS', color: COLORS.dls }, { label: 'Other', color: COLORS.other }].forEach(function (item) {
-      legend.appendChild(el('span', { className: 'heatmap-legend-item' }, [
-        el('span', { className: 'heatmap-legend-dot', style: 'background:' + item.color }),
-        el('span', { textContent: item.label }),
-      ]));
-    });
-    container.appendChild(legend);
+    // File rows
+    var list = el('div', { className: 'cg-files-list' });
 
-    fileScores.forEach(function (fs, i) {
-      var prevScore = prevScoreMap[fs.fileKey];
-      var trendEl;
-      if (prevScore !== undefined) {
-        var diff = fs.healthScore - prevScore;
-        if (diff > 1) trendEl = el('span', { className: 'leaderboard-trend trend-up', textContent: '\u2191' });
-        else if (diff < -1) trendEl = el('span', { className: 'leaderboard-trend trend-down', textContent: '\u2193' });
-        else trendEl = el('span', { className: 'leaderboard-trend trend-flat', textContent: '\u2014' });
-      } else {
-        trendEl = el('span', { className: 'leaderboard-trend', textContent: '' });
-      }
-
-      // Mini bar showing arcade/dls/other proportions of DS instances
+    fileScores.forEach(function (fs) {
       var file = files.find(function (f) { return f.fileKey === fs.fileKey; });
-      var bar = el('div', { className: 'leaderboard-bar-wrap' });
+
+      // Stacked bar (palette-matched to shuiguo bg)
+      var bar = el('div', { className: 'file-row-bar' });
       if (file) {
         var b = file.breakdown;
-        var dsTotal = b.dsArcade + b.dsDls + b.dsOther;
-        if (dsTotal > 0) {
-          bar.appendChild(el('div', { style: 'width:' + pct(b.dsArcade, dsTotal) + '%;background:' + COLORS.arcade }));
-          bar.appendChild(el('div', { style: 'width:' + pct(b.dsDls, dsTotal) + '%;background:' + COLORS.dls }));
-          bar.appendChild(el('div', { style: 'width:' + pct(b.dsOther, dsTotal) + '%;background:' + COLORS.other }));
-        }
+        var suspected = suspectedCount(file);
+        var surface = (file.componentSurface + suspected) || 1;
+        bar.appendChild(el('div', { style: 'width:' + pct(b.dsArcade, surface) + '%;background:' + FH_COLORS.arcade }));
+        bar.appendChild(el('div', { style: 'width:' + pct(b.dsDls, surface) + '%;background:' + FH_COLORS.dls }));
+        bar.appendChild(el('div', { style: 'width:' + pct(b.dsOther, surface) + '%;background:' + FH_COLORS.other }));
+        bar.appendChild(el('div', { style: 'width:' + pct(b.detached + suspected, surface) + '%;background:' + FH_COLORS.detached }));
       }
 
-      var row = el('div', { className: 'leaderboard-row' }, [
-        el('span', { className: 'leaderboard-rank', textContent: String(i + 1) }),
-        el('span', { className: 'leaderboard-name', textContent: fs.fileName, title: fs.fileName }),
-        bar,
-        el('span', { className: 'leaderboard-score', textContent: String(fs.healthScore), style: 'color:' + scoreColor(fs.healthScore) }),
-        trendEl,
-        el('span', { className: 'leaderboard-details' }, [
-          el('span', { className: 'leaderboard-detail', textContent: fmtPct(fs.dsCoverage) + ' cov' }),
-          el('span', { className: 'leaderboard-detail', textContent: fmtPct(fs.arcadeAdoption) + ' arc' }),
-          el('span', { className: 'leaderboard-detail', textContent: '~' + fmtPct(fs.detachRate) + ' det' }),
-        ]),
+      // Trend indicator
+      var prevScore = prevScoreMap[fs.fileKey];
+      var trendHtml = '';
+      if (prevScore !== undefined) {
+        var diff = fs.healthScore - prevScore;
+        if (diff > 1) trendHtml = ' <span class="trend-up">\u2191' + Math.abs(Math.round(diff)) + '</span>';
+        else if (diff < -1) trendHtml = ' <span class="trend-down">\u2193' + Math.abs(Math.round(diff)) + '</span>';
+      }
+
+      // Meta line
+      var meta = el('div', { className: 'file-row-meta' }, [
+        el('span', { textContent: fmtPct(fs.dsCoverage) + ' cov' }),
+        el('span', { textContent: fmtPct(fs.arcadeAdoption) + ' arcade' }),
+        el('span', { textContent: '~' + fmtPct(fs.detachRate) + ' detach' }),
       ]);
-      container.appendChild(row);
+
+      var row = el('div', {
+        className: 'file-row',
+        dataset: { tip: fs.fileName + '\nHealth: ' + fs.healthScore + '\nDS ' + fmtPct(fs.dsCoverage) + ' \u00b7 Arcade ' + fmtPct(fs.arcadeAdoption) + ' \u00b7 Detach ~' + fmtPct(fs.detachRate) },
+      }, [
+        el('div', { className: 'file-row-name', textContent: fs.fileName, title: fs.fileName }),
+        el('div', { className: 'file-row-score', innerHTML: String(fs.healthScore) + trendHtml, style: 'color:' + (fs.healthScore >= 70 ? FH_COLORS.scoreHigh : fs.healthScore >= 50 ? FH_COLORS.scoreMid : FH_COLORS.scoreLow) }),
+        bar,
+        meta,
+      ]);
+      list.appendChild(row);
     });
+
+    container.appendChild(list);
   }
 
   function renderActivityGrid(snapshots) {
@@ -350,17 +391,27 @@
     if (snapsToUse.length < 2) { card.style.display = 'none'; return; }
     card.style.display = '';
 
-    // Build 52 weekly columns ending on current week
+    // Calculate how many weeks fit at a comfortable cell size
+    var CELL_SIZE = 16; // px per cell (14px cell + 2px gap)
+    // Use the grid container's own width (already inside parent padding)
+    var containerWidth = container.clientWidth || 600;
+    // Label width (160px in cg-activity, 200px standalone) + gap (8px)
+    var inCard = container.closest('.cg-activity');
+    var labelW = inCard ? 168 : 208;
+    var availableWidth = containerWidth - labelW;
+    var weekCount = Math.max(12, Math.min(52, Math.floor(availableWidth / CELL_SIZE)));
+
     var now = new Date();
+    now.setHours(0, 0, 0, 0);
     var weeks = [];
-    // Start from 51 weeks ago (Monday of that week)
     var startDay = new Date(now);
-    startDay.setDate(startDay.getDate() - startDay.getDay() + 1 - 51 * 7); // Monday 51 weeks ago
-    for (var w = 0; w < 52; w++) {
+    startDay.setDate(startDay.getDate() - startDay.getDay() + 1 - (weekCount - 1) * 7);
+    for (var w = 0; w < weekCount; w++) {
       var weekStart = new Date(startDay);
       weekStart.setDate(weekStart.getDate() + w * 7);
       var weekEnd = new Date(weekStart);
       weekEnd.setDate(weekEnd.getDate() + 6);
+      weekEnd.setHours(23, 59, 59, 999);
       var key = weekStart.toISOString().slice(0, 10);
       weeks.push({
         key: key,
@@ -384,13 +435,13 @@
     // Bucket snapshots into weeks — latest per file per week
     // weekData[weekIndex][fileName] = { level, health }
     var weekData = [];
-    for (var wi = 0; wi < 52; wi++) weekData.push({});
+    for (var wi = 0; wi < weekCount; wi++) weekData.push({});
 
     var allFiles = {};
     snapsToUse.forEach(function (snap) {
       var snapDate = new Date(snap.timestamp.slice(0, 10).replace(/-/g, '/'));
       // Find which week this snapshot belongs to
-      for (var i = 51; i >= 0; i--) {
+      for (var i = weekCount - 1; i >= 0; i--) {
         if (snapDate >= weeks[i].start && snapDate <= weeks[i].end) {
           snap.audit.files.forEach(function (f) {
             var name = f.fileName || f.fileKey;
@@ -653,10 +704,16 @@
     }
     card.style.display = '';
 
+    // Trend chart palette (matched to banginapalli-100 bg)
+    var TREND_COLORS = {
+      coverage:   '#009261',  // dark emerald green
+      adoption:   '#3968F6',  // blue (from reference chart)
+      detachment: '#b5245a',  // dark rose
+    };
     var series = [
-      { key: 'dsCoverage', label: 'DS coverage', color: COLORS.arcade },
-      { key: 'arcadeAdoption', label: 'Arcade adoption', color: COLORS.bang },
-      { key: 'detachRate', label: 'Detachment rate', color: COLORS.detached },
+      { key: 'dsCoverage', label: 'DS coverage', color: TREND_COLORS.coverage },
+      { key: 'arcadeAdoption', label: 'Arcade adoption', color: TREND_COLORS.adoption },
+      { key: 'detachRate', label: 'Detachment rate', color: TREND_COLORS.detachment },
     ];
 
     // Legend
@@ -685,8 +742,8 @@
     var ch = h - padT - padB;
 
     // Y axis: 0–100%
-    ctx.font = '11px system-ui, sans-serif';
-    ctx.fillStyle = 'hsl(320, 2%, 64%)';
+    ctx.font = '11px Chip Text Variable, system-ui, sans-serif';
+    ctx.fillStyle = '#7a6e40';
     ctx.textAlign = 'right';
     for (var y = 0; y <= 4; y++) {
       var val = y * 25;
@@ -695,7 +752,7 @@
       ctx.beginPath();
       ctx.moveTo(padL, py);
       ctx.lineTo(w - padR, py);
-      ctx.strokeStyle = 'hsl(0, 0%, 91%)';
+      ctx.strokeStyle = 'hsla(45, 30%, 60%, 0.35)';
       ctx.lineWidth = 1;
       ctx.stroke();
     }
@@ -734,7 +791,7 @@
       ctx.fill();
 
       // Value label at end
-      ctx.font = '11px system-ui, sans-serif';
+      ctx.font = '11px Chip Text Variable, system-ui, sans-serif';
       ctx.fillStyle = s.color;
       ctx.textAlign = 'left';
       ctx.fillText(fmtPct(last.metrics[s.key]), lpx + 8, lpy + 4);
@@ -1137,11 +1194,11 @@
     }, 0);
     var coverage = pct(dsTotal, total);
     ctx.fillStyle = 'hsl(330, 2%, 24%)';
-    ctx.font = 'bold 28px system-ui, sans-serif';
+    ctx.font = '700 28px Chip Display Variable, system-ui, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(fmtPct(coverage), cx, cy - 6);
-    ctx.font = '11px system-ui, sans-serif';
+    ctx.font = '11px Chip Text Variable, system-ui, sans-serif';
     ctx.fillStyle = 'hsl(320, 2%, 64%)';
     ctx.fillText('DS coverage', cx, cy + 14);
   }
@@ -1187,7 +1244,7 @@
     var maxVal = Math.max.apply(null, series.map(function (s) { return s.value; })) || 1;
 
     // Grid
-    ctx.font = '11px system-ui, sans-serif';
+    ctx.font = '11px Chip Text Variable, system-ui, sans-serif';
     ctx.fillStyle = 'hsl(320, 2%, 64%)';
     ctx.textAlign = 'right';
     for (var y = 0; y <= 4; y++) {

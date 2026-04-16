@@ -12,6 +12,7 @@ const MIME_TYPES: Record<string, string> = {
   '.css': 'text/css',
   '.js': 'application/javascript',
   '.json': 'application/json',
+  '.ttf': 'font/ttf',
 };
 
 export async function serveCommand(options: ServeOptions): Promise<void> {

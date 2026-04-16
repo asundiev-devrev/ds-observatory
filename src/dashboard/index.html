@@ -10,11 +10,7 @@
   <div class="app">
     <header class="header">
       <div class="header-content">
-        <div class="header-title-group">
-          <h1 class="header-title">Design System Observatory</h1>
-          <p class="header-subtitle">Figma design usage analytics</p>
-        </div>
-        <div class="header-meta" id="header-meta"></div>
+        <h1 class="header-title">Design System Observatory</h1>
       </div>
     </header>
 
@@ -32,6 +28,7 @@
       <button class="tab" role="tab" aria-selected="false" aria-controls="panel-migration" id="tab-migration" tabindex="-1">
         Migration tracker
       </button>
+      <div class="header-meta" id="header-meta"></div>
     </nav>
 
     <main class="main">
@@ -39,20 +36,19 @@
         <div class="health-hero" id="health-hero"></div>
         <!-- metric-cards merged into health-hero -->
         <div class="metric-cards" id="metric-cards" style="display:none"></div>
-        <div class="card chart-card" id="trend-card" style="display:none">
-          <h2 class="card-title">Metrics over time</h2>
-          <div class="chart-container">
-            <canvas id="trend-chart" width="800" height="240"></canvas>
+        <div class="coverage-grid" id="coverage-grid">
+          <div class="cg-trend" id="trend-card" style="display:none">
+            <div class="cg-trend-label">Metrics over time</div>
+            <div class="chart-container">
+              <canvas id="trend-chart" width="800" height="240"></canvas>
+            </div>
+            <div class="chart-legend" id="trend-legend"></div>
           </div>
-          <div class="chart-legend" id="trend-legend"></div>
-        </div>
-        <div class="card" id="activity-card" style="display:none">
-          <h2 class="card-title">Activity</h2>
-          <div id="activity-grid"></div>
-        </div>
-        <div class="card">
-          <h2 class="card-title">File leaderboard</h2>
-          <div id="leaderboard"></div>
+          <div class="cg-files" id="leaderboard"></div>
+          <div class="cg-activity" id="activity-card" style="display:none">
+            <div class="cg-activity-label">Activity</div>
+            <div id="activity-grid"></div>
+          </div>
         </div>
       </section>
 
