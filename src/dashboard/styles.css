@@ -120,6 +120,25 @@
   --font-text: 'Chip Text Variable', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
   --font-display: 'Chip Display Variable', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
   --font-mono: 'Chip Mono', 'SF Mono', 'Fira Code', 'Consolas', monospace;
+  --font-small: 'Roboto Mono', 'SF Mono', monospace;
+}
+
+/* Roboto Mono for all small text on the coverage page */
+#panel-coverage .health-card-label,
+#panel-coverage .health-card-value .trend-down,
+#panel-coverage .health-card-value .trend-up,
+#panel-coverage .cg-trend-label,
+#panel-coverage .cg-trend .legend-item,
+#panel-coverage .cg-activity-label,
+#panel-coverage .cg-activity .activity-label,
+#panel-coverage .cg-activity .activity-month-label,
+#panel-coverage .cg-activity .activity-grid-legend,
+#panel-coverage .cg-files-title,
+#panel-coverage .cg-files-legend-item,
+#panel-coverage .file-row-name,
+#panel-coverage .file-row-meta,
+#panel-coverage .header-meta .snapshot-select {
+  font-family: var(--font-small);
 }
 
 /* ---- Reset ---- */

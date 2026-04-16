@@ -742,7 +742,7 @@
     var ch = h - padT - padB;
 
     // Y axis: 0–100%
-    ctx.font = '11px Chip Text Variable, system-ui, sans-serif';
+    ctx.font = '11px Roboto Mono, SF Mono, monospace';
     ctx.fillStyle = '#7a6e40';
     ctx.textAlign = 'right';
     for (var y = 0; y <= 4; y++) {
@@ -791,7 +791,7 @@
       ctx.fill();
 
       // Value label at end
-      ctx.font = '11px Chip Text Variable, system-ui, sans-serif';
+      ctx.font = '11px Roboto Mono, SF Mono, monospace';
       ctx.fillStyle = s.color;
       ctx.textAlign = 'left';
       ctx.fillText(fmtPct(last.metrics[s.key]), lpx + 8, lpy + 4);
