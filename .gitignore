@@ -2,6 +2,4 @@ node_modules/
 dist/
 data/
 .env
-.omc/
-.playwright-mcp/
 test-report.html

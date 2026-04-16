@@ -87,6 +87,14 @@
   }
   function fmtPct(v) { return v.toFixed(1) + '%'; }
   function fmtNum(n) { return n.toLocaleString(); }
+  var _MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  function _ord(d) { if (d > 3 && d < 21) return 'th'; switch (d % 10) { case 1: return 'st'; case 2: return 'nd'; case 3: return 'rd'; default: return 'th'; } }
+  function fmtDate(iso) {
+    var parts = iso.slice(0, 10).split('-');
+    var mon = _MONTHS[parseInt(parts[1], 10) - 1] || parts[1];
+    var day = parseInt(parts[2], 10);
+    return mon + ' ' + day + _ord(day);
+  }
 
   function el(tag, attrs, children) {
     var e = document.createElement(tag);
@@ -179,10 +187,13 @@
     var arcadeAdoption = pct(totalArcade, totalDS || 1);
     var detachRate = pct(totalDetached, totalComponentSurface || 1);
 
+    var healthScore = Math.round(0.4 * dsCoverage + 0.35 * arcadeAdoption + 0.25 * (100 - detachRate));
+
     return {
       dsCoverage: dsCoverage,
       arcadeAdoption: arcadeAdoption,
       detachRate: detachRate,
+      healthScore: healthScore,
       totalDS: totalDS,
       totalArcade: totalArcade,
       totalDetached: totalDetached,
@@ -191,7 +202,288 @@
     };
   }
 
+  function computeFileHealth(file) {
+    var b = file.breakdown;
+    var suspected = suspectedCount(file);
+    var surface = (file.componentSurface + suspected) || 1;
+    var dsTotal = b.dsArcade + b.dsDls + b.dsOther;
+    var dsCoverage = pct(dsTotal, surface);
+    var arcadeAdoption = pct(b.dsArcade, dsTotal || 1);
+    var detachRate = pct(b.detached + suspected, surface);
+    var healthScore = Math.round(0.4 * dsCoverage + 0.35 * arcadeAdoption + 0.25 * (100 - detachRate));
+    return {
+      fileKey: file.fileKey,
+      fileName: file.fileName,
+      dsCoverage: dsCoverage,
+      arcadeAdoption: arcadeAdoption,
+      detachRate: detachRate,
+      healthScore: healthScore,
+      surface: surface,
+    };
+  }
+
   // ---- Tab 1: Design Coverage ----
+
+  function scoreColor(score) {
+    if (score >= 70) return COLORS.arcade;
+    if (score >= 50) return COLORS.bang;
+    return COLORS.detached;
+  }
+
+  function renderHealthHero(metrics, prevMetrics) {
+    var container = document.getElementById('health-hero');
+    if (!container) return;
+    container.innerHTML = '';
+
+    var items = [
+      { label: 'Health score', value: String(metrics.healthScore), prev: prevMetrics ? prevMetrics.healthScore : null, color: scoreColor(metrics.healthScore) },
+      { label: 'DS coverage', value: fmtPct(metrics.dsCoverage), prev: prevMetrics ? prevMetrics.dsCoverage : null },
+      { label: 'Arcade adoption', value: fmtPct(metrics.arcadeAdoption), prev: prevMetrics ? prevMetrics.arcadeAdoption : null },
+      { label: 'Detachment rate', value: '~' + fmtPct(metrics.detachRate), prev: prevMetrics ? prevMetrics.detachRate : null, invert: true },
+    ];
+
+    items.forEach(function (item) {
+      var trendHtml = '';
+      if (item.prev !== null && item.prev !== undefined) {
+        var curr = parseFloat(item.value);
+        var diff = item.invert ? item.prev - curr : curr - item.prev;
+        if (Math.abs(diff) > 0.5) {
+          var cls = diff > 0 ? 'trend-up' : 'trend-down';
+          var arrow = diff > 0 ? '\u2191' : '\u2193';
+          trendHtml = ' <span class="' + cls + '">' + arrow + '</span>';
+        }
+      }
+      var valueStyle = item.color ? 'color:' + item.color : '';
+      container.appendChild(el('div', { className: 'health-card' }, [
+        el('div', { className: 'health-card-label', textContent: item.label }),
+        el('div', { className: 'health-card-value', innerHTML: item.value + trendHtml, style: valueStyle }),
+      ]));
+    });
+  }
+
+  function renderLeaderboard(audit, snapshots) {
+    var container = document.getElementById('leaderboard');
+    if (!container) return;
+    container.innerHTML = '';
+
+    var files = audit && audit.files ? audit.files : [];
+    if (!files.length) {
+      container.innerHTML = '<div class="heatmap-empty">No file data available</div>';
+      return;
+    }
+
+    // Compute health scores for current files
+    var fileScores = files.map(function (f) { return computeFileHealth(f); });
+    fileScores.sort(function (a, b) { return b.healthScore - a.healthScore; });
+
+    // Get previous snapshot's file scores for trend
+    var prevScoreMap = {};
+    if (snapshots && snapshots.length >= 2) {
+      var prevSnap = snapshots[snapshots.length - 2];
+      if (prevSnap && prevSnap.audit && prevSnap.audit.files) {
+        prevSnap.audit.files.forEach(function (f) {
+          var h = computeFileHealth(f);
+          prevScoreMap[h.fileKey] = h.healthScore;
+        });
+      }
+    }
+
+    // Legend
+    var legend = el('div', { className: 'leaderboard-legend' });
+    [{ label: 'Arcade', color: COLORS.arcade }, { label: 'DLS', color: COLORS.dls }, { label: 'Other', color: COLORS.other }].forEach(function (item) {
+      legend.appendChild(el('span', { className: 'heatmap-legend-item' }, [
+        el('span', { className: 'heatmap-legend-dot', style: 'background:' + item.color }),
+        el('span', { textContent: item.label }),
+      ]));
+    });
+    container.appendChild(legend);
+
+    fileScores.forEach(function (fs, i) {
+      var prevScore = prevScoreMap[fs.fileKey];
+      var trendEl;
+      if (prevScore !== undefined) {
+        var diff = fs.healthScore - prevScore;
+        if (diff > 1) trendEl = el('span', { className: 'leaderboard-trend trend-up', textContent: '\u2191' });
+        else if (diff < -1) trendEl = el('span', { className: 'leaderboard-trend trend-down', textContent: '\u2193' });
+        else trendEl = el('span', { className: 'leaderboard-trend trend-flat', textContent: '\u2014' });
+      } else {
+        trendEl = el('span', { className: 'leaderboard-trend', textContent: '' });
+      }
+
+      // Mini bar showing arcade/dls/other proportions of DS instances
+      var file = files.find(function (f) { return f.fileKey === fs.fileKey; });
+      var bar = el('div', { className: 'leaderboard-bar-wrap' });
+      if (file) {
+        var b = file.breakdown;
+        var dsTotal = b.dsArcade + b.dsDls + b.dsOther;
+        if (dsTotal > 0) {
+          bar.appendChild(el('div', { style: 'width:' + pct(b.dsArcade, dsTotal) + '%;background:' + COLORS.arcade }));
+          bar.appendChild(el('div', { style: 'width:' + pct(b.dsDls, dsTotal) + '%;background:' + COLORS.dls }));
+          bar.appendChild(el('div', { style: 'width:' + pct(b.dsOther, dsTotal) + '%;background:' + COLORS.other }));
+        }
+      }
+
+      var row = el('div', { className: 'leaderboard-row' }, [
+        el('span', { className: 'leaderboard-rank', textContent: String(i + 1) }),
+        el('span', { className: 'leaderboard-name', textContent: fs.fileName, title: fs.fileName }),
+        bar,
+        el('span', { className: 'leaderboard-score', textContent: String(fs.healthScore), style: 'color:' + scoreColor(fs.healthScore) }),
+        trendEl,
+        el('span', { className: 'leaderboard-details' }, [
+          el('span', { className: 'leaderboard-detail', textContent: fmtPct(fs.dsCoverage) + ' cov' }),
+          el('span', { className: 'leaderboard-detail', textContent: fmtPct(fs.arcadeAdoption) + ' arc' }),
+          el('span', { className: 'leaderboard-detail', textContent: '~' + fmtPct(fs.detachRate) + ' det' }),
+        ]),
+      ]);
+      container.appendChild(row);
+    });
+  }
+
+  function renderActivityGrid(snapshots) {
+    var card = document.getElementById('activity-card');
+    var container = document.getElementById('activity-grid');
+    if (!container || !card) return;
+
+    var snapsToUse = snapshots.filter(function (s) {
+      return s.audit && s.audit.files && s.audit.files.length > 0;
+    });
+    if (snapsToUse.length < 2) { card.style.display = 'none'; return; }
+    card.style.display = '';
+
+    // Build 52 weekly columns ending on current week
+    var now = new Date();
+    var weeks = [];
+    // Start from 51 weeks ago (Monday of that week)
+    var startDay = new Date(now);
+    startDay.setDate(startDay.getDate() - startDay.getDay() + 1 - 51 * 7); // Monday 51 weeks ago
+    for (var w = 0; w < 52; w++) {
+      var weekStart = new Date(startDay);
+      weekStart.setDate(weekStart.getDate() + w * 7);
+      var weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekEnd.getDate() + 6);
+      var key = weekStart.toISOString().slice(0, 10);
+      weeks.push({
+        key: key,
+        start: weekStart,
+        end: weekEnd,
+        month: weekStart.getMonth(),
+        year: weekStart.getFullYear(),
+      });
+    }
+
+    // Determine month label positions (first week of each month)
+    var monthLabels = []; // { index, label }
+    var prevMonth = -1;
+    weeks.forEach(function (wk, i) {
+      if (wk.month !== prevMonth) {
+        monthLabels.push({ index: i, label: _MONTHS[wk.month] });
+        prevMonth = wk.month;
+      }
+    });
+
+    // Bucket snapshots into weeks — latest per file per week
+    // weekData[weekIndex][fileName] = { level, health }
+    var weekData = [];
+    for (var wi = 0; wi < 52; wi++) weekData.push({});
+
+    var allFiles = {};
+    snapsToUse.forEach(function (snap) {
+      var snapDate = new Date(snap.timestamp.slice(0, 10).replace(/-/g, '/'));
+      // Find which week this snapshot belongs to
+      for (var i = 51; i >= 0; i--) {
+        if (snapDate >= weeks[i].start && snapDate <= weeks[i].end) {
+          snap.audit.files.forEach(function (f) {
+            var name = f.fileName || f.fileKey;
+            allFiles[name] = true;
+            var h = computeFileHealth(f);
+            var level = 0;
+            if (h.healthScore >= 75) level = 4;
+            else if (h.healthScore >= 60) level = 3;
+            else if (h.healthScore >= 45) level = 2;
+            else level = 1;
+            weekData[i][name] = { level: level, health: h };
+          });
+          break;
+        }
+      }
+    });
+    var fileNames = Object.keys(allFiles).sort();
+
+    container.innerHTML = '';
+
+    // Month labels header
+    var headerRow = el('div', { className: 'activity-row' });
+    headerRow.appendChild(el('span', { className: 'activity-label', textContent: '' }));
+    var headerCells = el('div', { className: 'activity-cells' });
+    weeks.forEach(function (wk, i) {
+      var mlabel = monthLabels.find(function (m) { return m.index === i; });
+      headerCells.appendChild(el('span', {
+        className: 'activity-month-label',
+        textContent: mlabel ? mlabel.label : '',
+      }));
+    });
+    headerRow.appendChild(headerCells);
+    container.appendChild(headerRow);
+
+    // One row per file
+    fileNames.forEach(function (fileName) {
+      var row = el('div', { className: 'activity-row' });
+      row.appendChild(el('span', { className: 'activity-label', textContent: fileName, title: fileName }));
+      var cells = el('div', { className: 'activity-cells' });
+
+      weeks.forEach(function (wk, i) {
+        var entry = weekData[i][fileName];
+        var level = entry ? entry.level : 0;
+        var weekLabel = fmtDate(wk.key);
+        var tip;
+        if (entry) {
+          var h = entry.health;
+          tip = fileName + '\nWeek of ' + weekLabel + '\nHealth: ' + h.healthScore + ' \u2014 DS ' + fmtPct(h.dsCoverage) + ', Arcade ' + fmtPct(h.arcadeAdoption) + ', Detach ' + fmtPct(h.detachRate);
+        } else {
+          tip = fileName + '\nWeek of ' + weekLabel + '\nNo data';
+        }
+        cells.appendChild(el('div', {
+          className: 'activity-cell',
+          dataset: { level: String(level), tip: tip },
+        }));
+      });
+      row.appendChild(cells);
+      container.appendChild(row);
+    });
+
+    // Legend
+    var legend = el('div', { className: 'activity-grid-legend' });
+    legend.appendChild(el('span', { textContent: 'Less' }));
+    [0, 1, 2, 3, 4].forEach(function (lvl) {
+      legend.appendChild(el('div', { className: 'activity-cell', dataset: { level: String(lvl) } }));
+    });
+    legend.appendChild(el('span', { textContent: 'More healthy' }));
+    container.appendChild(legend);
+  }
+
+  // Instant tooltip for activity grid cells and leaderboard rows
+  (function initGridTooltip() {
+    var tip = document.getElementById('grid-tooltip');
+    if (!tip) return;
+    document.addEventListener('mouseover', function (e) {
+      var cell = e.target.closest('[data-tip]');
+      if (!cell) { tip.classList.remove('visible'); return; }
+      tip.textContent = cell.dataset.tip;
+      tip.classList.add('visible');
+      var rect = cell.getBoundingClientRect();
+      var tipRect = tip.getBoundingClientRect();
+      var left = rect.left + rect.width / 2 - tipRect.width / 2;
+      var top = rect.top - tipRect.height - 6;
+      if (top < 4) top = rect.bottom + 6;
+      if (left < 4) left = 4;
+      if (left + tipRect.width > window.innerWidth - 4) left = window.innerWidth - tipRect.width - 4;
+      tip.style.left = left + 'px';
+      tip.style.top = top + 'px';
+    });
+    document.addEventListener('mouseout', function (e) {
+      if (e.target.closest('[data-tip]')) tip.classList.remove('visible');
+    });
+  })();
 
   function renderMetricCards(metrics) {
     var container = document.getElementById('metric-cards');
@@ -388,7 +680,7 @@
     ctx.scale(dpr, dpr);
     ctx.clearRect(0, 0, w, h);
 
-    var padL = 48, padR = 20, padT = 20, padB = 44;
+    var padL = 48, padR = 56, padT = 20, padB = 44;
     var cw = w - padL - padR;
     var ch = h - padT - padB;
 
@@ -414,9 +706,7 @@
     points.forEach(function (p, i) {
       if (i % xStep === 0 || i === points.length - 1) {
         var px = padL + (i / (points.length - 1)) * cw;
-        // Show date portion only
-        var dateLabel = p.label.slice(0, 10);
-        ctx.fillText(dateLabel, px, h - padB + 20);
+        ctx.fillText(fmtDate(p.label), px, h - padB + 20);
       }
     });
 
@@ -492,6 +782,15 @@
   function filterInventory(items, filter) {
     if (filter === 'all') return items;
     if (filter === 'both') return items.filter(function (i) { return i.libraries.length > 1; });
+    if (filter === 'friction') return items.filter(function (i) {
+      if (i.libraries.indexOf('arcade') < 0 && i.insertions > 5) return true;
+      if (i.libraries.length > 1) {
+        var arcIns = 0;
+        i.variants.forEach(function (v) { if (v.library === 'arcade') arcIns += v.insertions; });
+        if (arcIns / i.insertions < 0.3) return true;
+      }
+      return false;
+    });
     return items.filter(function (i) { return i.libraries.indexOf(filter) >= 0 && i.libraries.length === 1; });
   }
 
@@ -501,7 +800,8 @@
       var av, bv;
       if (key === 'name') { av = a.name.toLowerCase(); bv = b.name.toLowerCase(); return av < bv ? -1 * mult : av > bv ? mult : 0; }
       if (key === 'library') { av = a.libraries.join(','); bv = b.libraries.join(','); return av < bv ? -1 * mult : av > bv ? mult : 0; }
-      if (key === 'insertions') { av = a.insertions; bv = b.insertions; }
+      if (key === 'variants') { av = a.variants.length; bv = b.variants.length; }
+      else if (key === 'insertions') { av = a.insertions; bv = b.insertions; }
       else if (key === 'files') { av = a.files.length; bv = b.files.length; }
       else { av = 0; bv = 0; }
       return (av - bv) * mult;
@@ -531,19 +831,29 @@
           ? '<span class="badge arcade">Arcade</span>'
           : '<span class="badge dls">DLS</span>';
 
+      // Friction hotspot indicator
+      var frictionBadge = '';
+      var arcadeInsertions = 0;
+      item.variants.forEach(function (v) { if (v.library === 'arcade') arcadeInsertions += v.insertions; });
+      var arcadeRatio = item.insertions > 0 ? arcadeInsertions / item.insertions : 0;
+
+      if (item.libraries.indexOf('arcade') < 0 && item.insertions > 5) {
+        frictionBadge = '<span class="friction-badge friction-high" data-tip="No Arcade equivalent exists.\n' + fmtNum(item.insertions) + ' DLS insertions across ' + item.files.length + ' files need migration.">DLS only</span>';
+      } else if (item.libraries.length > 1 && arcadeRatio < 0.3) {
+        frictionBadge = '<span class="friction-badge friction-medium" data-tip="Arcade variant exists but accounts for only ' + Math.round(arcadeRatio * 100) + '% of usage.\n' + fmtNum(arcadeInsertions) + ' Arcade vs ' + fmtNum(item.insertions - arcadeInsertions) + ' DLS insertions.">' + Math.round(arcadeRatio * 100) + '% Arcade</span>';
+      }
+
       var tr = el('tr', {
         className: state.expandedRow === item.name ? 'expanded-parent' : '',
         style: 'cursor:pointer',
       });
 
       tr.innerHTML =
-        '<td>' + escapeHtml(item.name) +
-          '<span style="color:hsl(320,2%,64%);font-size:11px;margin-left:6px">' +
-          item.variants.length + (item.variants.length === 1 ? ' variant' : ' variants') +
-          '</span></td>' +
+        '<td>' + escapeHtml(item.name) + frictionBadge + '</td>' +
         '<td>' + libBadge + '</td>' +
-        '<td>' + fmtNum(item.insertions) + '</td>' +
-        '<td>' + item.files.length + '</td>';
+        '<td class="num">' + item.variants.length + '</td>' +
+        '<td class="num">' + fmtNum(item.insertions) + '</td>' +
+        '<td class="num">' + item.files.length + '</td>';
 
       tr.addEventListener('click', function () {
         state.expandedRow = state.expandedRow === item.name ? null : item.name;
@@ -555,7 +865,7 @@
       // Expand row — show variants + files
       if (state.expandedRow === item.name) {
         var expandTr = el('tr', { className: 'expand-row' });
-        var td = el('td', { colspan: '4' });
+        var td = el('td', { colspan: '5' });
 
         // Variant list
         var variantsSorted = item.variants.slice().sort(function (a, b) { return b.insertions - a.insertions; });
@@ -606,7 +916,7 @@
 
     if (sorted.length === 0) {
       var empty = el('tr');
-      empty.innerHTML = '<td colspan="4" style="text-align:center;padding:24px;color:hsl(320, 2%, 64%);">No components match this filter</td>';
+      empty.innerHTML = '<td colspan="5" style="text-align:center;padding:24px;color:hsl(320, 2%, 64%);">No components match this filter</td>';
       tbody.appendChild(empty);
     }
   }
@@ -841,6 +1151,7 @@
   function renderMigrationChart(analytics) {
     var canvas = document.getElementById('migration-chart');
     if (!canvas) return;
+    var chartCard = canvas.closest('.card');
     var ctx = canvas.getContext('2d');
 
     var weeks = [];
@@ -849,20 +1160,10 @@
     }
 
     if (weeks.length < 2) {
-      // Placeholder
-      ctx.font = '14px system-ui, sans-serif';
-      ctx.fillStyle = 'hsl(320, 2%, 64%)';
-      ctx.textAlign = 'center';
-      var dpr = window.devicePixelRatio || 1;
-      var w = canvas.parentElement.clientWidth || 800;
-      canvas.width = w * dpr;
-      canvas.height = 240 * dpr;
-      canvas.style.width = w + 'px';
-      canvas.style.height = '240px';
-      ctx.scale(dpr, dpr);
-      ctx.fillText('Trend data will appear after multiple collection runs', w / 2, 120);
+      if (chartCard) chartCard.style.display = 'none';
       return;
     }
+    if (chartCard) chartCard.style.display = '';
 
     var series = weeks.map(function (w) {
       return { label: w.week, value: w.insertions };
@@ -1094,7 +1395,7 @@
     if (meta.querySelector('select')) return;
     var parts = [];
     if (analytics && analytics.collectedAt) {
-      parts.push('Collected ' + analytics.collectedAt.slice(0, 10));
+      parts.push('Collected ' + fmtDate(analytics.collectedAt));
     }
     if (audit && audit.files) {
       parts.push(audit.files.length + ' files');
@@ -1119,9 +1420,20 @@
 
     // Tab 1: Design Coverage
     var metrics = computeMetrics(analytics, audit);
-    renderMetricCards(metrics);
-    renderHeatmap(audit);
+
+    // Compute previous metrics for trend arrows
+    var prevMetrics = null;
+    if (state.snapshots && state.snapshots.length >= 2) {
+      var prevSnap = state.snapshots[state.snapshots.length - 2];
+      if (prevSnap && prevSnap.audit) {
+        prevMetrics = computeMetrics(prevSnap.analytics, prevSnap.audit);
+      }
+    }
+
+    renderHealthHero(metrics, prevMetrics);
+    renderLeaderboard(audit, state.snapshots);
     renderTrendChart(state.snapshots);
+    renderActivityGrid(state.snapshots);
 
     // Tab 2: Component Inventory
     state.expandedRow = null;
@@ -1145,7 +1457,7 @@
 
     // "Latest" option
     var latestDate = state._latestAnalytics && state._latestAnalytics.collectedAt
-      ? state._latestAnalytics.collectedAt.slice(0, 10)
+      ? fmtDate(state._latestAnalytics.collectedAt)
       : 'latest';
     var fileCount = state._latestAudit && state._latestAudit.files ? state._latestAudit.files.length : 0;
     select.appendChild(el('option', { value: 'latest', textContent: latestDate + ' \u00b7 ' + fileCount + ' files (latest)' }));
@@ -1153,9 +1465,8 @@
     // Snapshot options newest-first
     snapshots.slice().reverse().forEach(function (snap, i) {
       var idx = snapshots.length - 1 - i;
-      var snapDate = snap.timestamp.slice(0, 10);
       var snapFiles = snap.audit && snap.audit.files ? snap.audit.files.length : 0;
-      select.appendChild(el('option', { value: String(idx), textContent: snapDate + ' \u00b7 ' + snapFiles + ' files' }));
+      select.appendChild(el('option', { value: String(idx), textContent: fmtDate(snap.timestamp) + ' \u00b7 ' + snapFiles + ' files' }));
     });
 
     select.addEventListener('change', function () {

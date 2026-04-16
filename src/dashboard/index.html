@@ -36,7 +36,9 @@
 
     <main class="main">
       <section class="panel" role="tabpanel" id="panel-coverage" aria-labelledby="tab-coverage">
-        <div class="metric-cards" id="metric-cards"></div>
+        <div class="health-hero" id="health-hero"></div>
+        <!-- metric-cards merged into health-hero -->
+        <div class="metric-cards" id="metric-cards" style="display:none"></div>
         <div class="card chart-card" id="trend-card" style="display:none">
           <h2 class="card-title">Metrics over time</h2>
           <div class="chart-container">
@@ -44,9 +46,13 @@
           </div>
           <div class="chart-legend" id="trend-legend"></div>
         </div>
+        <div class="card" id="activity-card" style="display:none">
+          <h2 class="card-title">Activity</h2>
+          <div id="activity-grid"></div>
+        </div>
         <div class="card">
-          <h2 class="card-title">File coverage heatmap</h2>
-          <div id="heatmap"></div>
+          <h2 class="card-title">File leaderboard</h2>
+          <div id="leaderboard"></div>
         </div>
       </section>
 
@@ -56,6 +62,7 @@
           <button class="pill" data-filter="dls">DLS</button>
           <button class="pill" data-filter="arcade">Arcade</button>
           <button class="pill" data-filter="both">Overlap</button>
+          <button class="pill" data-filter="friction">Friction</button>
         </div>
         <div class="card table-card">
           <div class="table-scroll">
@@ -64,8 +71,9 @@
                 <tr>
                   <th class="sortable" data-sort="name">Component name <span class="sort-icon"></span></th>
                   <th class="sortable" data-sort="library">Library <span class="sort-icon"></span></th>
-                  <th class="sortable" data-sort="insertions">Insertions <span class="sort-icon"></span></th>
-                  <th class="sortable" data-sort="files">Files used in <span class="sort-icon"></span></th>
+                  <th class="sortable num" data-sort="variants">Variants <span class="sort-icon"></span></th>
+                  <th class="sortable num" data-sort="insertions">Insertions <span class="sort-icon"></span></th>
+                  <th class="sortable num" data-sort="files">Files used in <span class="sort-icon"></span></th>
                 </tr>
               </thead>
               <tbody id="inventory-body"></tbody>
@@ -133,6 +141,7 @@
       </div>
     </main>
   </div>
+  <div class="grid-tooltip" id="grid-tooltip"></div>
   <script src="app.js"></script>
 </body>
 </html>
