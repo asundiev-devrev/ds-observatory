@@ -178,7 +178,7 @@ ul { list-style: none; }
 /* ---- Header ---- */
 .header {
   background: hsl(var(--bg-layer-01));
-  padding: var(--sp-xl) var(--sp-xl) var(--sp-lg);
+  padding: var(--sp-xl) 0 var(--sp-lg);
   flex-shrink: 0;
 }
 .header-content {
@@ -283,18 +283,22 @@ ul { list-style: none; }
   margin-bottom: var(--sp-lg);
 }
 .health-card-featured {
-  background: hsl(var(--hardy-100));
+  background: hsl(var(--bg-layer-01));
+  border: 1px solid hsl(var(--border-outline-00));
   border-radius: 16px;
   padding: var(--sp-xl) var(--sp-2xl);
   box-shadow: none;
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--sp-2xl);
+  align-items: center;
 }
 .health-card-featured .health-card-label {
-  font-size: 14px;
-  font-variation-settings: 'wght' 540;
-  color: hsl(var(--hardy-600));
+  font-size: 12px;
+  font-variation-settings: 'wght' 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: hsl(var(--text-color-tertiary));
   margin-bottom: var(--sp-xs);
 }
 .health-card-featured .health-card-value {
@@ -302,7 +306,7 @@ ul { list-style: none; }
   font-size: 64px;
   line-height: 1;
   font-variation-settings: 'wght' 700;
-  color: hsl(var(--hardy-600));
+  color: hsl(var(--text-color-primary));
   font-variant-numeric: tabular-nums;
 }
 .health-card-featured .health-card-value .trend-up,
@@ -315,6 +319,59 @@ ul { list-style: none; }
 }
 .health-card-featured .health-card-value .trend-up { color: hsl(var(--hardy-600)); }
 .health-card-featured .health-card-value .trend-down { color: hsl(var(--persimmon-500)); }
+.health-card-featured .health-card-value.score-good { color: hsl(var(--hardy-600)); }
+.health-card-featured .health-card-value.score-warn { color: hsl(var(--banginapalli-500)); }
+.health-card-featured .health-card-value.score-mid  { color: hsl(var(--banginapalli-500)); }
+.health-card-featured .health-card-value.score-bad  { color: hsl(var(--persimmon-500)); }
+
+/* Score explainer — sits beside the big number */
+.health-score-context {
+  border-left: 1px solid hsl(var(--border-outline-00));
+  padding-left: var(--sp-2xl);
+}
+.health-score-summary {
+  font-family: var(--font-display);
+  font-size: 16px;
+  line-height: 22px;
+  font-variation-settings: 'wght' 700;
+  color: hsl(var(--text-color-primary));
+  margin-bottom: var(--sp-xs);
+}
+.health-score-desc {
+  font-size: 13px;
+  line-height: 18px;
+  font-variation-settings: 'wght' 440;
+  color: hsl(var(--text-color-secondary));
+  margin-bottom: var(--sp-sm);
+}
+.health-score-factors {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.health-score-factor {
+  font-family: var(--font-small);
+  font-size: 11px;
+  line-height: 16px;
+  color: hsl(var(--text-color-secondary));
+  display: flex;
+  gap: 6px;
+}
+.health-score-factor .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  margin-top: 5px;
+  flex-shrink: 0;
+  background: hsl(var(--husk-500));
+}
+.health-score-factor.positive .dot { background: hsl(var(--hardy-500)); }
+.health-score-factor.negative .dot { background: hsl(var(--persimmon-500)); }
+.health-score-factor .factor-body { flex: 1; }
+.health-score-factor .factor-label {
+  color: hsl(var(--text-color-primary));
+  font-variation-settings: 'wght' 600;
+}
 
 .health-hero-secondary {
   display: grid;
@@ -326,34 +383,19 @@ ul { list-style: none; }
   flex-direction: column;
   padding: var(--sp-xl);
   background: hsl(var(--bg-layer-01));
-  border: none;
+  border: 1px solid hsl(var(--border-outline-00));
   border-radius: 16px;
-  box-shadow: var(--shadow-depth-01);
-}
-.health-card.tint-shuiguo {
-  background: hsl(var(--shuiguo-100));
   box-shadow: none;
 }
-.health-card.tint-shuiguo .health-card-label { color: hsl(var(--shuiguo-600)); }
 .health-card.tint-shuiguo .health-card-value { color: hsl(var(--shuiguo-600)); }
-.health-card.tint-hardy {
-  background: hsl(var(--hardy-100));
-  box-shadow: none;
-}
-.health-card.tint-hardy .health-card-label { color: hsl(var(--hardy-600)); }
 .health-card.tint-hardy .health-card-value { color: hsl(var(--hardy-600)); }
-.health-card.tint-persimmon {
-  background: hsl(var(--persimmon-100));
-  box-shadow: none;
-}
-.health-card.tint-persimmon .health-card-label { color: hsl(var(--persimmon-500)); }
 .health-card.tint-persimmon .health-card-value { color: hsl(var(--persimmon-500)); }
 .health-card-label {
   font-size: 12px;
   font-variation-settings: 'wght' 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: hsl(var(--text-color-secondary));
+  color: hsl(var(--text-color-tertiary));
   margin-bottom: var(--sp-sm);
 }
 .health-card-value {
@@ -377,10 +419,11 @@ ul { list-style: none; }
   gap: var(--sp-sm);
 }
 
-/* Trend chart card — spans 2 cols, tinted */
+/* Trend chart card — spans 2 cols */
 .cg-trend {
   grid-column: span 2;
-  background: hsl(var(--banginapalli-100));
+  background: hsl(var(--bg-layer-01));
+  border: 1px solid hsl(var(--border-outline-00));
   border-radius: 16px;
   padding: var(--sp-xl) var(--sp-2xl);
   overflow: hidden;
@@ -390,17 +433,18 @@ ul { list-style: none; }
   font-variation-settings: 'wght' 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: #5c4400;
+  color: hsl(var(--text-color-tertiary));
   margin-bottom: var(--sp-sm);
 }
 .cg-trend .chart-container { margin-bottom: 0; }
 .cg-trend .chart-legend { padding-top: var(--sp-xs); }
-.cg-trend .legend-item { color: #7a6e40; }
+.cg-trend .legend-item { color: hsl(var(--text-color-secondary)); }
 
-/* Activity card — red bg, yellow cells, spans 2 cols */
+/* Activity card — white bg, hardy green cells, spans 2 cols */
 .cg-activity {
   grid-column: span 2;
-  background: #FF4570;
+  background: hsl(var(--bg-layer-01));
+  border: 1px solid hsl(var(--border-outline-00));
   border-radius: 16px;
   padding: var(--sp-xl) var(--sp-2xl);
   overflow: hidden;
@@ -410,23 +454,24 @@ ul { list-style: none; }
   font-variation-settings: 'wght' 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: #FCEADE;
+  color: hsl(var(--text-color-tertiary));
   margin-bottom: var(--sp-sm);
 }
-.cg-activity .activity-cell { background: rgba(252, 234, 222, 0.24); }
-.cg-activity .activity-cell[data-level="1"] { background: rgba(252, 234, 222, 0.55); }
-.cg-activity .activity-cell[data-level="2"] { background: #FCEADE; }
-.cg-activity .activity-cell[data-level="3"] { background: #FFE278; }
-.cg-activity .activity-cell[data-level="4"] { background: #FFCD06; }
-.cg-activity .activity-label { width: 160px; font-size: 11px; color: #FCEADE; }
-.cg-activity .activity-month-label { color: rgba(252, 234, 222, 0.65); }
-.cg-activity .activity-grid-legend { color: rgba(252, 234, 222, 0.65); }
+.cg-activity .activity-cell { background: hsl(var(--husk-300)); }
+.cg-activity .activity-cell[data-level="1"] { background: hsla(var(--hardy-500) / 0.28); }
+.cg-activity .activity-cell[data-level="2"] { background: hsla(var(--hardy-500) / 0.5); }
+.cg-activity .activity-cell[data-level="3"] { background: hsla(var(--hardy-500) / 0.75); }
+.cg-activity .activity-cell[data-level="4"] { background: hsl(var(--hardy-500)); }
+.cg-activity .activity-label { width: 160px; font-size: 11px; color: hsl(var(--text-color-secondary)); }
+.cg-activity .activity-month-label { color: hsl(var(--text-color-tertiary)); }
+.cg-activity .activity-grid-legend { color: hsl(var(--text-color-tertiary)); }
 
-/* File leaderboard — single card with horizontal bar chart */
+/* File leaderboard — white card with horizontal bar chart */
 .cg-files {
   grid-column: span 1;
   grid-row: span 2;
-  background: hsl(var(--shuiguo-100));
+  background: hsl(var(--bg-layer-01));
+  border: 1px solid hsl(var(--border-outline-00));
   border-radius: 16px;
   padding: var(--sp-xl) var(--sp-2xl);
   display: flex;
@@ -438,13 +483,14 @@ ul { list-style: none; }
   font-variation-settings: 'wght' 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: hsl(var(--shuiguo-600));
+  color: hsl(var(--text-color-tertiary));
   margin-bottom: var(--sp-base);
 }
 .cg-files-legend {
   display: flex;
   gap: var(--sp-sm);
   margin-bottom: var(--sp-sm);
+  flex-wrap: wrap;
 }
 .cg-files-legend-item {
   display: flex;
@@ -452,7 +498,7 @@ ul { list-style: none; }
   gap: 5px;
   font-size: 11px;
   font-variation-settings: 'wght' 440;
-  color: hsl(var(--shuiguo-600));
+  color: hsl(var(--text-color-secondary));
 }
 .cg-files-legend-dot {
   width: 7px;
@@ -478,7 +524,7 @@ ul { list-style: none; }
 .file-row-name {
   font-size: 13px;
   font-variation-settings: 'wght' 480;
-  color: hsl(var(--shuiguo-600));
+  color: hsl(var(--text-color-primary));
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -490,6 +536,7 @@ ul { list-style: none; }
   font-variation-settings: 'wght' 700;
   font-variant-numeric: tabular-nums;
   text-align: right;
+  color: hsl(var(--text-color-primary));
 }
 .file-row-bar {
   grid-column: 1 / -1;
@@ -497,7 +544,7 @@ ul { list-style: none; }
   border-radius: 4px;
   overflow: hidden;
   display: flex;
-  background: hsla(var(--shuiguo-600) / 0.15);
+  background: hsl(var(--husk-300));
 }
 .file-row-bar > div { height: 100%; }
 .file-row-meta {
@@ -506,16 +553,13 @@ ul { list-style: none; }
   gap: var(--sp-sm);
   font-size: 11px;
   font-variation-settings: 'wght' 440;
-  color: #155d7c;
+  color: hsl(var(--text-color-tertiary));
 }
 
 /* Trend arrows */
-.trend-up { color: hsl(var(--hardy-500)); }
+.trend-up { color: hsl(var(--hardy-600)); }
 .trend-down { color: hsl(var(--persimmon-500)); }
 .trend-flat { color: hsl(var(--husk-500)); }
-/* File health card trend arrows — blue palette */
-.cg-files .trend-up { color: #009261; }
-.cg-files .trend-down { color: #FF8ADC; }
 
 /* ---- Activity Grid ---- */
 .activity-grid {
@@ -1555,15 +1599,15 @@ window.__DS_OBSERVATORY_DATA__ = {
     return COLORS.detached;
   }
 
-  // File health card palette (matched to shuiguo-100 bg)
+  // File health card palette (neutral bg — Arcade accents)
   var FH_COLORS = {
-    arcade:   '#009261',
-    dls:      '#155d7c',
-    other:    'hsl(var(--shuiguo-500))',
-    detached: '#FF8ADC',
-    scoreHigh: '#009261',
-    scoreMid:  '#8b6200',
-    scoreLow:  '#FF8ADC',
+    arcade:   'hsl(89, 85%, 46%)',     // hardy-500
+    dls:      'hsl(198, 94%, 57%)',    // shuiguo-500
+    other:    'hsl(320, 2%, 64%)',     // husk-600
+    detached: 'hsl(13, 90%, 54%)',     // persimmon-500
+    scoreHigh: 'hsl(89, 89%, 32%)',    // hardy-600
+    scoreMid:  'hsl(55, 100%, 25%)',   // banginapalli-600
+    scoreLow:  'hsl(13, 90%, 54%)',    // persimmon-500
   };
 
   function renderHealthHero(metrics, prevMetrics) {
@@ -1582,11 +1626,81 @@ window.__DS_OBSERVATORY_DATA__ = {
       }
     }
 
+    // Score → semantic tier for color coding
+    var scoreTier = metrics.healthScore >= 80 ? 'score-good'
+                  : metrics.healthScore >= 65 ? 'score-warn'
+                  : metrics.healthScore >= 50 ? 'score-mid'
+                  : 'score-bad';
+
     var featured = el('div', { className: 'health-card-featured' });
     var featuredLeft = el('div');
     featuredLeft.appendChild(el('div', { className: 'health-card-label', textContent: 'Health score' }));
-    featuredLeft.appendChild(el('div', { className: 'health-card-value', innerHTML: String(metrics.healthScore) + heroTrend }));
+    featuredLeft.appendChild(el('div', { className: 'health-card-value ' + scoreTier, innerHTML: String(metrics.healthScore) + heroTrend }));
     featured.appendChild(featuredLeft);
+
+    // Score context (what does this number mean)
+    var score = metrics.healthScore;
+    var summary, desc;
+    if (score >= 80) {
+      summary = 'Healthy. System is doing its job.';
+      desc = 'High adoption, consistent usage, few overrides. Most work lands on-pattern.';
+    } else if (score >= 65) {
+      summary = 'Traction, but not yet consistency.';
+      desc = 'Teams are using the system, but not reliably or in the same way.';
+    } else if (score >= 50) {
+      summary = 'Uncomfortable middle ground — not broken, not healthy.';
+      desc = 'Enough gaps and inconsistencies that outcomes vary noticeably across teams.';
+    } else {
+      summary = 'System isn\'t carrying its weight yet.';
+      desc = 'Most surface is off-pattern. Needs investment in either missing components or adoption.';
+    }
+
+    // Factor list — mirrors Arthur's framing: adoption, detachment/overrides, gaps, consistency
+    var factors = [];
+
+    // Partial adoption
+    if (metrics.dsCoverage >= 80) {
+      factors.push({ kind: 'positive', label: 'Adoption', text: fmtPct(metrics.dsCoverage) + ' of surface on system — core components used broadly' });
+    } else if (metrics.dsCoverage < 60) {
+      factors.push({ kind: 'negative', label: 'Partial adoption', text: 'only ' + fmtPct(metrics.dsCoverage) + ' of surface on system — people still going off-piste' });
+    } else {
+      factors.push({ kind: 'neutral', label: 'Partial adoption', text: 'core components used, but ' + fmtPct(100 - metrics.dsCoverage) + ' of surface still off-pattern' });
+    }
+
+    // Detachment / overrides
+    if (metrics.detachRate > 15) {
+      factors.push({ kind: 'negative', label: 'High detachment', text: '~' + fmtPct(metrics.detachRate) + ' detached — designers pulling things apart to make them work' });
+    } else if (metrics.detachRate > 8) {
+      factors.push({ kind: 'neutral', label: 'Moderate overrides', text: '~' + fmtPct(metrics.detachRate) + ' detached instances' });
+    } else {
+      factors.push({ kind: 'positive', label: 'Low detachment', text: '~' + fmtPct(metrics.detachRate) + ' detached — overrides are rare' });
+    }
+
+    // Gaps / maturity — Arcade vs DLS split
+    if (metrics.arcadeAdoption >= 60) {
+      factors.push({ kind: 'positive', label: 'Mature Arcade uptake', text: fmtPct(metrics.arcadeAdoption) + ' of DS usage is on Arcade' });
+    } else if (metrics.arcadeAdoption < 30) {
+      factors.push({ kind: 'negative', label: 'Gaps in Arcade', text: 'only ' + fmtPct(metrics.arcadeAdoption) + ' of DS usage is Arcade — DLS still dominant' });
+    } else {
+      factors.push({ kind: 'neutral', label: 'Mixed maturity', text: 'Arcade at ' + fmtPct(metrics.arcadeAdoption) + ' — some teams bought in, others not' });
+    }
+
+    var context = el('div', { className: 'health-score-context' });
+    context.appendChild(el('div', { className: 'health-score-summary', textContent: summary }));
+    context.appendChild(el('div', { className: 'health-score-desc', textContent: desc }));
+    var factorsList = el('div', { className: 'health-score-factors' });
+    factors.forEach(function (f) {
+      var body = el('span', { className: 'factor-body' });
+      body.appendChild(el('span', { className: 'factor-label', textContent: f.label }));
+      body.appendChild(document.createTextNode(' \u2192 ' + f.text));
+      factorsList.appendChild(el('div', { className: 'health-score-factor ' + f.kind }, [
+        el('span', { className: 'dot' }),
+        body,
+      ]));
+    });
+    context.appendChild(factorsList);
+    featured.appendChild(context);
+
     container.appendChild(featured);
 
     // --- Secondary cards ---
@@ -2029,11 +2143,11 @@ window.__DS_OBSERVATORY_DATA__ = {
     }
     card.style.display = '';
 
-    // Trend chart palette (matched to banginapalli-100 bg)
+    // Trend chart palette — Arcade accents on white bg
     var TREND_COLORS = {
-      coverage:   '#009261',  // dark emerald green
-      adoption:   '#3968F6',  // blue (from reference chart)
-      detachment: '#b5245a',  // dark rose
+      coverage:   'hsl(197, 91%, 40%)',   // shuiguo-600
+      adoption:   'hsl(89, 89%, 32%)',    // hardy-600
+      detachment: 'hsl(13, 90%, 54%)',    // persimmon-500
     };
     var series = [
       { key: 'dsCoverage', label: 'DS coverage', color: TREND_COLORS.coverage },
@@ -2068,7 +2182,7 @@ window.__DS_OBSERVATORY_DATA__ = {
 
     // Y axis: 0–100%
     ctx.font = '11px Roboto Mono, SF Mono, monospace';
-    ctx.fillStyle = '#7a6e40';
+    ctx.fillStyle = 'hsl(320, 2%, 64%)';
     ctx.textAlign = 'right';
     for (var y = 0; y <= 4; y++) {
       var val = y * 25;
@@ -2077,7 +2191,7 @@ window.__DS_OBSERVATORY_DATA__ = {
       ctx.beginPath();
       ctx.moveTo(padL, py);
       ctx.lineTo(w - padR, py);
-      ctx.strokeStyle = 'hsla(45, 30%, 60%, 0.35)';
+      ctx.strokeStyle = 'hsl(0, 0%, 91%)';
       ctx.lineWidth = 1;
       ctx.stroke();
     }
