@@ -230,15 +230,15 @@
     return COLORS.detached;
   }
 
-  // File health card palette (matched to shuiguo-100 bg)
+  // File health card palette (neutral bg — Arcade accents)
   var FH_COLORS = {
-    arcade:   '#009261',
-    dls:      '#155d7c',
-    other:    'hsl(var(--shuiguo-500))',
-    detached: '#FF8ADC',
-    scoreHigh: '#009261',
-    scoreMid:  '#8b6200',
-    scoreLow:  '#FF8ADC',
+    arcade:   'hsl(89, 85%, 46%)',     // hardy-500
+    dls:      'hsl(198, 94%, 57%)',    // shuiguo-500
+    other:    'hsl(320, 2%, 64%)',     // husk-600
+    detached: 'hsl(13, 90%, 54%)',     // persimmon-500
+    scoreHigh: 'hsl(89, 89%, 32%)',    // hardy-600
+    scoreMid:  'hsl(55, 100%, 25%)',   // banginapalli-600
+    scoreLow:  'hsl(13, 90%, 54%)',    // persimmon-500
   };
 
   function renderHealthHero(metrics, prevMetrics) {
@@ -257,11 +257,81 @@
       }
     }
 
+    // Score → semantic tier for color coding
+    var scoreTier = metrics.healthScore >= 80 ? 'score-good'
+                  : metrics.healthScore >= 65 ? 'score-warn'
+                  : metrics.healthScore >= 50 ? 'score-mid'
+                  : 'score-bad';
+
     var featured = el('div', { className: 'health-card-featured' });
     var featuredLeft = el('div');
     featuredLeft.appendChild(el('div', { className: 'health-card-label', textContent: 'Health score' }));
-    featuredLeft.appendChild(el('div', { className: 'health-card-value', innerHTML: String(metrics.healthScore) + heroTrend }));
+    featuredLeft.appendChild(el('div', { className: 'health-card-value ' + scoreTier, innerHTML: String(metrics.healthScore) + heroTrend }));
     featured.appendChild(featuredLeft);
+
+    // Score context (what does this number mean)
+    var score = metrics.healthScore;
+    var summary, desc;
+    if (score >= 80) {
+      summary = 'Healthy. System is doing its job.';
+      desc = 'High adoption, consistent usage, few overrides. Most work lands on-pattern.';
+    } else if (score >= 65) {
+      summary = 'Traction, but not yet consistency.';
+      desc = 'Teams are using the system, but not reliably or in the same way.';
+    } else if (score >= 50) {
+      summary = 'Uncomfortable middle ground — not broken, not healthy.';
+      desc = 'Enough gaps and inconsistencies that outcomes vary noticeably across teams.';
+    } else {
+      summary = 'System isn\'t carrying its weight yet.';
+      desc = 'Most surface is off-pattern. Needs investment in either missing components or adoption.';
+    }
+
+    // Factor list — mirrors Arthur's framing: adoption, detachment/overrides, gaps, consistency
+    var factors = [];
+
+    // Partial adoption
+    if (metrics.dsCoverage >= 80) {
+      factors.push({ kind: 'positive', label: 'Adoption', text: fmtPct(metrics.dsCoverage) + ' of surface on system — core components used broadly' });
+    } else if (metrics.dsCoverage < 60) {
+      factors.push({ kind: 'negative', label: 'Partial adoption', text: 'only ' + fmtPct(metrics.dsCoverage) + ' of surface on system — people still going off-piste' });
+    } else {
+      factors.push({ kind: 'neutral', label: 'Partial adoption', text: 'core components used, but ' + fmtPct(100 - metrics.dsCoverage) + ' of surface still off-pattern' });
+    }
+
+    // Detachment / overrides
+    if (metrics.detachRate > 15) {
+      factors.push({ kind: 'negative', label: 'High detachment', text: '~' + fmtPct(metrics.detachRate) + ' detached — designers pulling things apart to make them work' });
+    } else if (metrics.detachRate > 8) {
+      factors.push({ kind: 'neutral', label: 'Moderate overrides', text: '~' + fmtPct(metrics.detachRate) + ' detached instances' });
+    } else {
+      factors.push({ kind: 'positive', label: 'Low detachment', text: '~' + fmtPct(metrics.detachRate) + ' detached — overrides are rare' });
+    }
+
+    // Gaps / maturity — Arcade vs DLS split
+    if (metrics.arcadeAdoption >= 60) {
+      factors.push({ kind: 'positive', label: 'Mature Arcade uptake', text: fmtPct(metrics.arcadeAdoption) + ' of DS usage is on Arcade' });
+    } else if (metrics.arcadeAdoption < 30) {
+      factors.push({ kind: 'negative', label: 'Gaps in Arcade', text: 'only ' + fmtPct(metrics.arcadeAdoption) + ' of DS usage is Arcade — DLS still dominant' });
+    } else {
+      factors.push({ kind: 'neutral', label: 'Mixed maturity', text: 'Arcade at ' + fmtPct(metrics.arcadeAdoption) + ' — some teams bought in, others not' });
+    }
+
+    var context = el('div', { className: 'health-score-context' });
+    context.appendChild(el('div', { className: 'health-score-summary', textContent: summary }));
+    context.appendChild(el('div', { className: 'health-score-desc', textContent: desc }));
+    var factorsList = el('div', { className: 'health-score-factors' });
+    factors.forEach(function (f) {
+      var body = el('span', { className: 'factor-body' });
+      body.appendChild(el('span', { className: 'factor-label', textContent: f.label }));
+      body.appendChild(document.createTextNode(' \u2192 ' + f.text));
+      factorsList.appendChild(el('div', { className: 'health-score-factor ' + f.kind }, [
+        el('span', { className: 'dot' }),
+        body,
+      ]));
+    });
+    context.appendChild(factorsList);
+    featured.appendChild(context);
+
     container.appendChild(featured);
 
     // --- Secondary cards ---
@@ -704,11 +774,11 @@
     }
     card.style.display = '';
 
-    // Trend chart palette (matched to banginapalli-100 bg)
+    // Trend chart palette — Arcade accents on white bg
     var TREND_COLORS = {
-      coverage:   '#009261',  // dark emerald green
-      adoption:   '#3968F6',  // blue (from reference chart)
-      detachment: '#b5245a',  // dark rose
+      coverage:   'hsl(197, 91%, 40%)',   // shuiguo-600
+      adoption:   'hsl(89, 89%, 32%)',    // hardy-600
+      detachment: 'hsl(13, 90%, 54%)',    // persimmon-500
     };
     var series = [
       { key: 'dsCoverage', label: 'DS coverage', color: TREND_COLORS.coverage },
@@ -743,7 +813,7 @@
 
     // Y axis: 0–100%
     ctx.font = '11px Roboto Mono, SF Mono, monospace';
-    ctx.fillStyle = '#7a6e40';
+    ctx.fillStyle = 'hsl(320, 2%, 64%)';
     ctx.textAlign = 'right';
     for (var y = 0; y <= 4; y++) {
       var val = y * 25;
@@ -752,7 +822,7 @@
       ctx.beginPath();
       ctx.moveTo(padL, py);
       ctx.lineTo(w - padR, py);
-      ctx.strokeStyle = 'hsla(45, 30%, 60%, 0.35)';
+      ctx.strokeStyle = 'hsl(0, 0%, 91%)';
       ctx.lineWidth = 1;
       ctx.stroke();
     }
