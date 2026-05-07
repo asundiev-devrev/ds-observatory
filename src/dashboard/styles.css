@@ -459,10 +459,14 @@ ul { list-style: none; }
 .cg-activity .activity-month-label { color: hsl(var(--text-color-tertiary)); }
 .cg-activity .activity-grid-legend { color: hsl(var(--text-color-tertiary)); }
 
-/* File leaderboard — white card with horizontal bar chart */
+/* File leaderboard — white card with horizontal bar chart.
+   `contain: size` makes the card contribute 0 to the grid row's intrinsic
+   height, so activity drives row 2's size. Files then stretches to match
+   the resolved row height, and its inner list scrolls. */
 .cg-files {
   grid-column: 3 / 4;
   grid-row: 2;
+  contain: size;
   background: hsl(var(--bg-layer-01));
   border: 1px solid hsl(var(--border-outline-00));
   border-radius: 16px;
