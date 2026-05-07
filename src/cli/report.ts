@@ -161,6 +161,38 @@ async function buildSnapshots(dataDir: string): Promise<{ metrics: SnapshotMetri
   return { metrics, snapshots };
 }
 
+interface CodeSnapshot {
+  date: string;
+  data: unknown;
+}
+
+async function loadCodeSnapshots(dataDir: string): Promise<CodeSnapshot[]> {
+  const codeDir = path.join(dataDir, 'code-snapshots');
+  let files: string[];
+  try {
+    files = await fs.readdir(codeDir);
+  } catch {
+    return [];
+  }
+
+  const matches = files
+    .map(f => f.match(/^(\d{4}-\d{2}-\d{2})-observatory\.json$/))
+    .filter((m): m is RegExpMatchArray => m !== null)
+    .map(m => ({ date: m[1], file: m[0] }))
+    .sort((a, b) => (a.date < b.date ? -1 : 1));
+
+  const snapshots: CodeSnapshot[] = [];
+  for (const { date, file } of matches) {
+    try {
+      const raw = await fs.readFile(path.join(codeDir, file), 'utf-8');
+      snapshots.push({ date, data: JSON.parse(raw) });
+    } catch {
+      // skip unreadable snapshots
+    }
+  }
+  return snapshots;
+}
+
 export async function reportCommand(options: ReportOptions): Promise<void> {
   const dataDir = path.resolve(process.cwd(), 'data');
 
@@ -175,6 +207,9 @@ export async function reportCommand(options: ReportOptions): Promise<void> {
 
   const { metrics: snapshotMetrics, snapshots: slimSnapshots } = await buildSnapshots(dataDir);
   console.log(`Found ${snapshotMetrics.length} snapshot(s) for trend chart`);
+
+  const codeSnapshots = await loadCodeSnapshots(dataDir);
+  console.log(`Found ${codeSnapshots.length} code snapshot(s)`);
 
   const dashboardDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../dashboard');
   const html = await fs.readFile(path.join(dashboardDir, 'index.html'), 'utf-8');
@@ -213,7 +248,8 @@ window.__DS_OBSERVATORY_DATA__ = {
   audit: ${JSON.stringify(audit)},
   canonical: ${JSON.stringify(canonical)},
   snapshotMetrics: ${JSON.stringify(snapshotMetrics)},
-  snapshots: ${JSON.stringify(slimSnapshots)}
+  snapshots: ${JSON.stringify(slimSnapshots)},
+  codeSnapshots: ${JSON.stringify(codeSnapshots)}
 };
 </script>
 <script>${js}</script>`,

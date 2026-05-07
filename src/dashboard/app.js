@@ -44,6 +44,27 @@
     });
   }
 
+  function loadCodeSnapshots() {
+    return fetch('/data/code-snapshots/')
+      .then(function (r) { return r.json(); })
+      .then(function (files) {
+        var dated = files
+          .map(function (f) {
+            var m = f.match(/^(\d{4}-\d{2}-\d{2})-observatory\.json$/);
+            return m ? { date: m[1], file: f } : null;
+          })
+          .filter(function (x) { return x; })
+          .sort(function (a, b) { return a.date < b.date ? -1 : 1; });
+
+        return Promise.all(dated.map(function (d) {
+          return fetch('/data/code-snapshots/' + d.file)
+            .then(function (r) { return r.json(); })
+            .then(function (data) { return { date: d.date, data: data }; });
+        }));
+      })
+      .catch(function () { return []; });
+  }
+
   function loadSnapshots() {
     return fetch('/data/snapshots/').then(function (r) { return r.json(); }).then(function (files) {
       // Group by truncated timestamp (strip milliseconds) so pairs match
@@ -140,6 +161,21 @@
         }
       });
       tab.focus();
+      // Re-render charts when a panel becomes visible — canvas width is 0 while hidden
+      var id = tab.id;
+      var snaps = state.codeSnapshots;
+      if (!snaps || !snaps.length) return;
+      var latest = snaps[snaps.length - 1].data;
+      if (id === 'tab-code-coverage') {
+        renderCodeAdoptionChart(snaps);
+        renderCodeUsageChart(snaps);
+      } else if (id === 'tab-code-detachment') {
+        renderCodeDetachChart(snaps);
+        renderCodeSemanticChart(snaps);
+        renderCodeFrictionChart(latest);
+      } else if (id === 'tab-code-arcade') {
+        renderCodeArcadeChart(snaps);
+      }
     }
 
     tabBar.addEventListener('click', function (e) {
@@ -1493,6 +1529,810 @@
     });
   }
 
+  // ---- Code Coverage (multi-panel) ----
+
+  var CODE_COLORS = {
+    adoption:   'hsl(89, 89%, 32%)',     // hardy-600
+    detach:     'hsl(13, 90%, 54%)',     // persimmon-500
+    arcade:     'hsl(197, 91%, 40%)',    // shuiguo-600
+    dls23:      'hsl(89, 85%, 46%)',     // hardy-500
+    dls22:      'hsl(48, 100%, 51%)',    // banginapalli-400
+    colors:     'hsl(259, 94%, 44%)',    // jabuticaba-400
+    sizes:      'hsl(198, 94%, 57%)',    // shuiguo-500
+    typography: 'hsl(89, 85%, 46%)',     // hardy-500
+    other:      'hsl(48, 100%, 51%)',    // banginapalli-400
+    safe:       'hsl(320, 2%, 64%)',     // husk-600
+    grid:       'hsl(0, 0%, 91%)',
+    axisText:   'hsl(320, 2%, 64%)',
+  };
+
+  function computeCodeMetrics(snap) {
+    var cov = (snap && snap.coverage && snap.coverage.global) || {};
+    var det = (snap && snap.detachment && snap.detachment.global) || {};
+    var arc = (snap && snap.arcadeCoverage) || {};
+    return {
+      adoption: (cov.adoptionRate || 0) * 100,
+      meaningful: (det.meaningfulDetachmentRate || 0) * 100,
+      detachment: (det.detachmentRate || 0) * 100,
+      arcade: (arc.arcadeCoverageRate || 0) * 100,
+      dls23Usages: cov.totalDls23Usages || 0,
+      dls22Usages: cov.totalDls22Usages || 0,
+      totalUsages: det.totalUsages || 0,
+      usagesWithClassName: det.usagesWithClassName || 0,
+      arcadeCovered: arc.coveredComponents || 0,
+      arcadeTotal: arc.totalDls23Components || 0,
+      generatedAt: snap && snap.generatedAt,
+      totalFiles: snap && snap.totalFilesParsed,
+    };
+  }
+
+  function codeTrendCell(curr, prev, opts) {
+    opts = opts || {};
+    if (prev === null || prev === undefined) return '';
+    var diff = opts.invert ? prev - curr : curr - prev;
+    if (Math.abs(diff) <= 0.5) return '';
+    var cls = diff > 0 ? 'trend-up' : 'trend-down';
+    var arrow = diff > 0 ? '↑' : '↓';
+    var suffix = opts.suffix !== undefined ? opts.suffix : 'pp';
+    var raw = Math.abs(diff);
+    var formatted = opts.integer ? String(Math.round(raw)) : raw.toFixed(1);
+    return ' <span class="' + cls + '">' + arrow + ' ' + formatted + suffix + '</span>';
+  }
+
+  function renderCodeKpis(metrics, firstMetrics) {
+    var rows = document.querySelectorAll('[data-kpi-row]');
+    if (!rows.length) return;
+
+    var weeks = state.codeSnapshots ? state.codeSnapshots.length : 0;
+    var trendLabel = weeks > 1 ? ' over ' + weeks + ' weeks' : '';
+
+    var items = [
+      {
+        label: 'DLS23 adoption',
+        value: fmtPct(metrics.adoption),
+        trend: codeTrendCell(metrics.adoption, firstMetrics ? firstMetrics.adoption : null) + (firstMetrics ? '<span class="kpi-trend-note">' + trendLabel + '</span>' : ''),
+      },
+      {
+        label: 'Meaningful detachment',
+        value: fmtPct(metrics.meaningful),
+        trend: codeTrendCell(metrics.meaningful, firstMetrics ? firstMetrics.meaningful : null, { invert: true }) + (firstMetrics ? '<span class="kpi-trend-note">' + trendLabel + '</span>' : ''),
+      },
+      {
+        label: 'Arcade coverage',
+        value: fmtPct(metrics.arcade),
+        trend: codeTrendCell(metrics.arcade, firstMetrics ? firstMetrics.arcade : null) + (firstMetrics ? '<span class="kpi-trend-note">' + trendLabel + '</span>' : ''),
+      },
+      {
+        label: 'DLS22 usages',
+        value: fmtNum(metrics.dls22Usages),
+        trend: codeTrendCell(metrics.dls22Usages, firstMetrics ? firstMetrics.dls22Usages : null, { invert: true, integer: true, suffix: '' }) + (firstMetrics ? '<span class="kpi-trend-note">' + trendLabel + '</span>' : ''),
+      },
+    ];
+
+    rows.forEach(function (row) {
+      row.innerHTML = '';
+      items.forEach(function (item) {
+        row.appendChild(el('div', { className: 'code-kpi' }, [
+          el('div', { className: 'code-kpi-label', textContent: item.label }),
+          el('div', { className: 'code-kpi-value', textContent: item.value }),
+          el('div', { className: 'code-kpi-trend', innerHTML: item.trend || '&nbsp;' }),
+        ]));
+      });
+    });
+  }
+
+  function renderCodeHeaderMeta(metrics) {
+    var meta = document.getElementById('header-meta');
+    if (!meta) return;
+    if (meta.querySelector('select')) return; // snapshot selector owns this slot for design data
+    if (meta.dataset.source === 'design') return;
+    var parts = [];
+    if (metrics.generatedAt) parts.push('Generated ' + fmtDate(metrics.generatedAt));
+    if (metrics.totalFiles) parts.push(fmtNum(metrics.totalFiles) + ' files scanned');
+    if (state.codeSnapshots && state.codeSnapshots.length > 1) {
+      parts.push(state.codeSnapshots.length + ' snapshots');
+    }
+    meta.dataset.source = 'code';
+    meta.textContent = parts.join(' · ');
+  }
+
+  // ---- Canvas helpers ----
+
+  function setupCanvas(canvas) {
+    var dpr = window.devicePixelRatio || 1;
+    var parent = canvas.parentElement;
+    var w = (parent && parent.clientWidth) || 800;
+    var h = parseInt(canvas.getAttribute('height') || '240', 10);
+    canvas.width = w * dpr;
+    canvas.height = h * dpr;
+    canvas.style.width = w + 'px';
+    canvas.style.height = h + 'px';
+    var ctx = canvas.getContext('2d');
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.scale(dpr, dpr);
+    ctx.clearRect(0, 0, w, h);
+    return { ctx: ctx, w: w, h: h };
+  }
+
+  function drawAxes(ctx, layout, yTicks, xLabels, opts) {
+    opts = opts || {};
+    var padL = layout.padL, padR = layout.padR, padT = layout.padT, padB = layout.padB;
+    var w = layout.w, h = layout.h;
+    var cw = w - padL - padR;
+    var ch = h - padT - padB;
+
+    ctx.font = '11px Roboto Mono, SF Mono, monospace';
+    ctx.fillStyle = CODE_COLORS.axisText;
+    ctx.textAlign = 'right';
+    yTicks.forEach(function (tick) {
+      var py = padT + ch - tick.frac * ch;
+      ctx.fillText(tick.label, padL - 8, py + 4);
+      ctx.beginPath();
+      ctx.moveTo(padL, py);
+      ctx.lineTo(w - padR, py);
+      ctx.strokeStyle = CODE_COLORS.grid;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    });
+
+    ctx.textAlign = 'center';
+    var step = Math.max(1, Math.floor(xLabels.length / (opts.xStep || 5)));
+    xLabels.forEach(function (lbl, i) {
+      if (i % step === 0 || i === xLabels.length - 1) {
+        var px = padL + (i / Math.max(1, xLabels.length - 1)) * cw;
+        ctx.fillText(lbl, px, h - padB + 20);
+      }
+    });
+  }
+
+  function drawAreaLine(ctx, layout, points, color, opts) {
+    opts = opts || {};
+    var padL = layout.padL, padT = layout.padT, padR = layout.padR, padB = layout.padB;
+    var cw = layout.w - padL - padR;
+    var ch = layout.h - padT - padB;
+    var minV = opts.min !== undefined ? opts.min : 0;
+    var maxV = opts.max;
+
+    if (opts.area) {
+      ctx.beginPath();
+      ctx.moveTo(padL, padT + ch);
+      points.forEach(function (p, i) {
+        var px = padL + (i / Math.max(1, points.length - 1)) * cw;
+        var frac = (p - minV) / (maxV - minV);
+        var py = padT + ch - frac * ch;
+        ctx.lineTo(px, py);
+      });
+      ctx.lineTo(padL + cw, padT + ch);
+      ctx.closePath();
+      ctx.fillStyle = opts.area;
+      ctx.fill();
+    }
+
+    ctx.beginPath();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = opts.lineWidth || 2.5;
+    ctx.lineJoin = 'round';
+    points.forEach(function (p, i) {
+      var px = padL + (i / Math.max(1, points.length - 1)) * cw;
+      var frac = (p - minV) / (maxV - minV);
+      var py = padT + ch - frac * ch;
+      if (i === 0) ctx.moveTo(px, py);
+      else ctx.lineTo(px, py);
+    });
+    ctx.stroke();
+
+    // dots
+    points.forEach(function (p, i) {
+      var px = padL + (i / Math.max(1, points.length - 1)) * cw;
+      var frac = (p - minV) / (maxV - minV);
+      var py = padT + ch - frac * ch;
+      ctx.beginPath();
+      ctx.arc(px, py, i === points.length - 1 ? 4 : 2.5, 0, Math.PI * 2);
+      ctx.fillStyle = color;
+      ctx.fill();
+    });
+
+    if (opts.endLabel) {
+      var last = points[points.length - 1];
+      var lastFrac = (last - minV) / (maxV - minV);
+      var lx = padL + cw;
+      var ly = padT + ch - lastFrac * ch;
+      ctx.font = '11px Roboto Mono, SF Mono, monospace';
+      ctx.fillStyle = color;
+      ctx.textAlign = 'left';
+      ctx.fillText(opts.endLabel, lx + 8, ly + 4);
+    }
+  }
+
+  // ---- Code Coverage panel ----
+
+  function renderCodeAdoptionChart(codeSnapshots) {
+    var canvas = document.getElementById('code-adoption-chart');
+    if (!canvas) return;
+    var setup = setupCanvas(canvas);
+    var layout = { w: setup.w, h: setup.h, padL: 48, padR: 64, padT: 20, padB: 44 };
+    var pts = codeSnapshots.map(function (s) { return computeCodeMetrics(s.data).adoption; });
+    var labels = codeSnapshots.map(function (s) { return fmtDate(s.date); });
+    drawAxes(setup.ctx, layout, [
+      { frac: 0, label: '0%' },
+      { frac: 0.25, label: '25%' },
+      { frac: 0.5, label: '50%' },
+      { frac: 0.75, label: '75%' },
+      { frac: 1, label: '100%' },
+    ], labels, { xStep: 6 });
+    drawAreaLine(setup.ctx, layout, pts, CODE_COLORS.adoption, {
+      max: 100,
+      area: 'hsla(89, 85%, 46%, 0.12)',
+      endLabel: fmtPct(pts[pts.length - 1]),
+    });
+  }
+
+  function renderCodeUsageChart(codeSnapshots) {
+    var canvas = document.getElementById('code-usage-chart');
+    var legendEl = document.getElementById('code-usage-legend');
+    if (!canvas) return;
+    var setup = setupCanvas(canvas);
+    var layout = { w: setup.w, h: setup.h, padL: 56, padR: 56, padT: 20, padB: 44 };
+
+    var dls23 = codeSnapshots.map(function (s) { return computeCodeMetrics(s.data).dls23Usages; });
+    var dls22 = codeSnapshots.map(function (s) { return computeCodeMetrics(s.data).dls22Usages; });
+    var labels = codeSnapshots.map(function (s) { return fmtDate(s.date); });
+    var max = Math.max.apply(null, dls23.concat(dls22)) * 1.1;
+
+    var niceStep = Math.pow(10, Math.floor(Math.log10(max / 4)));
+    var step = Math.ceil(max / 4 / niceStep) * niceStep;
+    var yTicks = [];
+    for (var i = 0; i <= 4; i++) {
+      yTicks.push({ frac: i / 4, label: fmtNum(Math.round(step * i)) });
+    }
+    max = step * 4;
+    drawAxes(setup.ctx, layout, yTicks, labels, { xStep: 6 });
+
+    drawAreaLine(setup.ctx, layout, dls22, CODE_COLORS.dls22, { max: max, endLabel: fmtNum(dls22[dls22.length - 1]) });
+    drawAreaLine(setup.ctx, layout, dls23, CODE_COLORS.dls23, { max: max, endLabel: fmtNum(dls23[dls23.length - 1]) });
+
+    if (legendEl) {
+      legendEl.innerHTML = '';
+      [
+        { label: 'DLS23', color: CODE_COLORS.dls23 },
+        { label: 'DLS22', color: CODE_COLORS.dls22 },
+      ].forEach(function (s) {
+        legendEl.appendChild(el('span', { className: 'legend-item' }, [
+          el('span', { className: 'legend-dot', style: 'background:' + s.color }),
+          el('span', { textContent: s.label }),
+        ]));
+      });
+    }
+  }
+
+  function renderCodeMigrationList(snap) {
+    var container = document.getElementById('code-migration-list');
+    var desc = document.getElementById('code-migration-desc');
+    if (!container) return;
+    container.innerHTML = '';
+
+    var byComp = (snap && snap.coverage && snap.coverage.byComponent) || [];
+    var dls22 = byComp.filter(function (c) { return c.module === 'dls22'; })
+      .sort(function (a, b) { return b.usages - a.usages; });
+
+    if (!dls22.length) {
+      container.appendChild(el('div', { className: 'heatmap-empty', textContent: 'No DLS22 usage recorded' }));
+      if (desc) desc.textContent = '';
+      return;
+    }
+
+    var total = dls22.reduce(function (s, c) { return s + c.usages; }, 0);
+    var max = dls22[0].usages;
+    if (desc) desc.textContent = fmtNum(total) + ' DLS22 usages across ' + dls22.length + ' components — migration priorities';
+
+    var list = el('div', { className: 'code-migration-list-inner' });
+    dls22.slice(0, 30).forEach(function (c) {
+      var pctOfMax = (c.usages / max) * 100;
+      var share = (c.usages / total) * 100;
+      list.appendChild(el('div', { className: 'code-migration-row' }, [
+        el('div', { className: 'code-migration-name', textContent: c.component, title: c.component }),
+        el('div', { className: 'code-migration-track' }, [
+          el('div', { style: 'width:' + pctOfMax + '%;background:' + CODE_COLORS.dls22 }),
+        ]),
+        el('div', { className: 'code-migration-count', textContent: fmtNum(c.usages) }),
+        el('div', { className: 'code-migration-share', textContent: share.toFixed(1) + '%' }),
+      ]));
+    });
+    container.appendChild(list);
+
+    if (dls22.length > 30) {
+      container.appendChild(el('div', {
+        className: 'card-desc',
+        style: 'margin-top:var(--sp-xs)',
+        textContent: '+ ' + (dls22.length - 30) + ' more components with lower usage',
+      }));
+    }
+  }
+
+  // ---- Code Detachment panel ----
+
+  function renderCodeDetachChart(codeSnapshots) {
+    var canvas = document.getElementById('code-detach-chart');
+    if (!canvas) return;
+    var setup = setupCanvas(canvas);
+    var pts = codeSnapshots.map(function (s) { return computeCodeMetrics(s.data).meaningful; });
+    var labels = codeSnapshots.map(function (s) { return fmtDate(s.date); });
+    var max = Math.min(50, Math.ceil(Math.max.apply(null, pts) / 5) * 5 + 5);
+    var layout = { w: setup.w, h: setup.h, padL: 48, padR: 64, padT: 20, padB: 44 };
+    var yTicks = [];
+    for (var i = 0; i <= 5; i++) yTicks.push({ frac: i / 5, label: Math.round(max * i / 5) + '%' });
+    drawAxes(setup.ctx, layout, yTicks, labels, { xStep: 6 });
+    drawAreaLine(setup.ctx, layout, pts, CODE_COLORS.detach, {
+      max: max,
+      area: 'hsla(13, 90%, 54%, 0.12)',
+      endLabel: fmtPct(pts[pts.length - 1]),
+    });
+  }
+
+  function renderCodeSemanticChart(codeSnapshots) {
+    var canvas = document.getElementById('code-semantic-chart');
+    var legendEl = document.getElementById('code-semantic-legend');
+    if (!canvas) return;
+    var setup = setupCanvas(canvas);
+    var layout = { w: setup.w, h: setup.h, padL: 56, padR: 56, padT: 20, padB: 44 };
+
+    var groups = ['colors', 'sizes', 'typography', 'other'];
+    var groupLabels = { colors: 'Colors', sizes: 'Sizes', typography: 'Typography', other: 'Other' };
+    var series = {};
+    groups.forEach(function (g) { series[g] = []; });
+    codeSnapshots.forEach(function (s) {
+      var bsg = (s.data && s.data.detachment && s.data.detachment.global && s.data.detachment.global.bySemanticGroup) || {};
+      groups.forEach(function (g) {
+        series[g].push((bsg[g] && bsg[g].overridingUsages) || 0);
+      });
+    });
+    var labels = codeSnapshots.map(function (s) { return fmtDate(s.date); });
+    var allValues = groups.reduce(function (a, g) { return a.concat(series[g]); }, []);
+    var max = Math.max.apply(null, allValues) * 1.1;
+    var niceStep = Math.pow(10, Math.floor(Math.log10(max / 4)));
+    var step = Math.ceil(max / 4 / niceStep) * niceStep;
+    max = step * 4;
+
+    var yTicks = [];
+    for (var i = 0; i <= 4; i++) yTicks.push({ frac: i / 4, label: fmtNum(Math.round(step * i)) });
+    drawAxes(setup.ctx, layout, yTicks, labels, { xStep: 6 });
+
+    groups.forEach(function (g) {
+      drawAreaLine(setup.ctx, layout, series[g], CODE_COLORS[g], { max: max, endLabel: fmtNum(series[g][series[g].length - 1]) });
+    });
+
+    if (legendEl) {
+      legendEl.innerHTML = '';
+      groups.forEach(function (g) {
+        legendEl.appendChild(el('span', { className: 'legend-item' }, [
+          el('span', { className: 'legend-dot', style: 'background:' + CODE_COLORS[g] }),
+          el('span', { textContent: groupLabels[g] }),
+        ]));
+      });
+    }
+  }
+
+  function renderCodeFrictionChart(snap) {
+    var canvas = document.getElementById('code-friction-chart');
+    if (!canvas) return;
+    var setup = setupCanvas(canvas);
+    var layout = { w: setup.w, h: setup.h, padL: 52, padR: 20, padT: 20, padB: 44 };
+    var ctx = setup.ctx;
+    var cw = setup.w - layout.padL - layout.padR;
+    var ch = setup.h - layout.padT - layout.padB;
+
+    var byComp = ((snap && snap.detachment && snap.detachment.byComponent) || []).slice()
+      .filter(function (c) { return (c.totalUsages || 0) > 0; });
+
+    if (!byComp.length) {
+      ctx.fillStyle = CODE_COLORS.axisText;
+      ctx.font = '12px Chip Text Variable, system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('No detachment data', setup.w / 2, setup.h / 2);
+      return;
+    }
+
+    var maxUse = Math.max.apply(null, byComp.map(function (c) { return c.totalUsages; }));
+    var logMax = Math.log10(maxUse + 1);
+
+    // Y ticks — 0, 25, 50, 75, 100
+    var yTicks = [];
+    for (var i = 0; i <= 4; i++) yTicks.push({ frac: i / 4, label: (i * 25) + '%' });
+
+    // X ticks — log usage scale marked at 1, 10, 100, 1000
+    ctx.font = '11px Roboto Mono, SF Mono, monospace';
+    ctx.fillStyle = CODE_COLORS.axisText;
+    ctx.textAlign = 'right';
+    yTicks.forEach(function (tick) {
+      var py = layout.padT + ch - tick.frac * ch;
+      ctx.fillText(tick.label, layout.padL - 8, py + 4);
+      ctx.beginPath();
+      ctx.moveTo(layout.padL, py);
+      ctx.lineTo(layout.padL + cw, py);
+      ctx.strokeStyle = CODE_COLORS.grid;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    });
+
+    ctx.textAlign = 'center';
+    [1, 10, 100, 1000].forEach(function (v) {
+      if (Math.log10(v + 1) > logMax) return;
+      var frac = Math.log10(v + 1) / logMax;
+      var px = layout.padL + frac * cw;
+      ctx.fillText(fmtNum(v) + ' uses', px, setup.h - layout.padB + 20);
+      ctx.beginPath();
+      ctx.moveTo(px, layout.padT);
+      ctx.lineTo(px, layout.padT + ch);
+      ctx.strokeStyle = CODE_COLORS.grid;
+      ctx.stroke();
+    });
+
+    // Plot bubbles
+    byComp.sort(function (a, b) { return a.totalUsages - b.totalUsages; });
+    byComp.forEach(function (c) {
+      var frac = Math.log10((c.totalUsages || 0) + 1) / logMax;
+      var det = (c.meaningfulDetachmentRate || 0);
+      var px = layout.padL + frac * cw;
+      var py = layout.padT + ch - det * ch;
+      var radius = 3 + Math.sqrt(c.totalUsages) * 0.25;
+      ctx.beginPath();
+      ctx.arc(px, py, Math.min(radius, 16), 0, Math.PI * 2);
+      ctx.fillStyle = c.module === 'dls23' ? 'hsla(89, 85%, 46%, 0.55)' : 'hsla(48, 100%, 51%, 0.55)';
+      ctx.fill();
+      ctx.lineWidth = 1;
+      ctx.strokeStyle = c.module === 'dls23' ? 'hsl(89, 89%, 32%)' : 'hsl(49, 100%, 38%)';
+      ctx.stroke();
+    });
+
+    // Label the top-right outliers: high-use AND high-detachment
+    var flagged = byComp.slice().filter(function (c) {
+      return c.totalUsages >= 50 && (c.meaningfulDetachmentRate || 0) >= 0.3;
+    }).sort(function (a, b) {
+      var sa = (a.meaningfulDetachmentRate || 0) * Math.log10((a.totalUsages || 1) + 1);
+      var sb = (b.meaningfulDetachmentRate || 0) * Math.log10((b.totalUsages || 1) + 1);
+      return sb - sa;
+    }).slice(0, 8);
+    ctx.fillStyle = 'hsl(330, 2%, 24%)';
+    ctx.font = '11px Chip Text Variable, system-ui, sans-serif';
+    flagged.forEach(function (c) {
+      var frac = Math.log10((c.totalUsages || 0) + 1) / logMax;
+      var det = (c.meaningfulDetachmentRate || 0);
+      var px = layout.padL + frac * cw;
+      var py = layout.padT + ch - det * ch;
+      ctx.textAlign = px > setup.w - 80 ? 'right' : 'left';
+      ctx.fillText(c.component, px + (ctx.textAlign === 'right' ? -8 : 8), py - 4);
+    });
+  }
+
+  function renderCodeTokenList(snap) {
+    var container = document.getElementById('code-token-list');
+    var tabsEl = document.getElementById('code-token-tabs');
+    if (!container) return;
+
+    var byComp = (snap && snap.detachment && snap.detachment.byComponent) || [];
+    var groups = ['colors', 'sizes', 'typography', 'other'];
+    var totals = {};
+    groups.forEach(function (g) { totals[g] = {}; });
+
+    byComp.forEach(function (c) {
+      var tg = c.tokensByGroup || {};
+      groups.forEach(function (g) {
+        (tg[g] || []).forEach(function (tok) {
+          var bucket = totals[g];
+          if (!bucket[tok.token]) bucket[tok.token] = { token: tok.token, count: 0, components: 0 };
+          bucket[tok.token].count += tok.count;
+          bucket[tok.token].components += 1;
+        });
+      });
+    });
+
+    if (tabsEl && !tabsEl.childElementCount) {
+      groups.forEach(function (g, i) {
+        var btn = el('button', {
+          className: 'pill' + (i === 0 ? ' active' : ''),
+          dataset: { group: g },
+        }, [g.charAt(0).toUpperCase() + g.slice(1)]);
+        tabsEl.appendChild(btn);
+      });
+      tabsEl.addEventListener('click', function (e) {
+        var btn = e.target.closest('button[data-group]');
+        if (!btn) return;
+        tabsEl.querySelectorAll('button').forEach(function (b) { b.classList.remove('active'); });
+        btn.classList.add('active');
+        state.codeTokenGroup = btn.dataset.group;
+        renderCodeTokenListBody(totals);
+      });
+    }
+
+    state.codeTokenGroup = state.codeTokenGroup || 'colors';
+    renderCodeTokenListBody(totals);
+
+    function renderCodeTokenListBody(totalsInner) {
+      container.innerHTML = '';
+      var bucket = totalsInner[state.codeTokenGroup] || {};
+      var arr = Object.keys(bucket).map(function (k) { return bucket[k]; })
+        .sort(function (a, b) { return b.count - a.count; })
+        .slice(0, 40);
+
+      if (!arr.length) {
+        container.appendChild(el('div', { className: 'heatmap-empty', textContent: 'No tokens in this group' }));
+        return;
+      }
+
+      var max = arr[0].count;
+      var list = el('div', { className: 'code-token-list' });
+      arr.forEach(function (t) {
+        list.appendChild(el('div', { className: 'code-token-row' }, [
+          el('code', { className: 'code-token-name', textContent: t.token, title: t.token }),
+          el('div', { className: 'code-token-track' }, [
+            el('div', { style: 'width:' + ((t.count / max) * 100) + '%;background:' + CODE_COLORS[state.codeTokenGroup] }),
+          ]),
+          el('div', { className: 'code-token-count', textContent: fmtNum(t.count) }),
+          el('div', { className: 'code-token-meta', textContent: t.components + ' comp' + (t.components === 1 ? '' : 's') }),
+        ]));
+      });
+      container.appendChild(list);
+    }
+  }
+
+  // ---- Code Arcade panel ----
+
+  function renderCodeArcadeChart(codeSnapshots) {
+    var canvas = document.getElementById('code-arcade-chart');
+    if (!canvas) return;
+    var setup = setupCanvas(canvas);
+    var pts = codeSnapshots.map(function (s) { return computeCodeMetrics(s.data).arcade; });
+    var labels = codeSnapshots.map(function (s) { return fmtDate(s.date); });
+    var layout = { w: setup.w, h: setup.h, padL: 48, padR: 64, padT: 20, padB: 44 };
+    drawAxes(setup.ctx, layout, [
+      { frac: 0, label: '0%' },
+      { frac: 0.25, label: '25%' },
+      { frac: 0.5, label: '50%' },
+      { frac: 0.75, label: '75%' },
+      { frac: 1, label: '100%' },
+    ], labels, { xStep: 6 });
+    drawAreaLine(setup.ctx, layout, pts, CODE_COLORS.arcade, {
+      max: 100,
+      area: 'hsla(197, 91%, 40%, 0.12)',
+      endLabel: fmtPct(pts[pts.length - 1]),
+    });
+  }
+
+  function renderCodeArcadeGrid(snap) {
+    var covered = document.getElementById('code-arcade-covered');
+    var missing = document.getElementById('code-arcade-missing');
+    var desc = document.getElementById('code-arcade-desc');
+    if (!covered || !missing) return;
+    covered.innerHTML = '';
+    missing.innerHTML = '';
+
+    var arc = (snap && snap.arcadeCoverage) || {};
+    var coveredList = (arc.covered || []).slice();
+    var missingList = (arc.notCovered || []).slice();
+
+    if (desc) {
+      desc.textContent = (arc.coveredComponents || 0) + ' of ' + (arc.totalDls23Components || 0) +
+        ' DLS23 components themed for Arcade — click a chip for details';
+    }
+
+    // Usage map for ranking the missing list
+    var usageByName = {};
+    var byComp = (snap && snap.coverage && snap.coverage.byComponent) || [];
+    byComp.forEach(function (c) {
+      if (c.module !== 'dls23') return;
+      // convert PascalCase to kebab-case to match arcadeCoverage names
+      var kebab = c.component.replace(/[A-Z]/g, function (m, i) { return (i ? '-' : '') + m.toLowerCase(); });
+      usageByName[kebab] = c.usages;
+      usageByName[c.component.toLowerCase()] = c.usages;
+    });
+
+    // Detachment map for chip tooltips
+    var detachByName = {};
+    var detComp = (snap && snap.detachment && snap.detachment.byComponent) || [];
+    detComp.forEach(function (c) {
+      if (c.module !== 'dls23') return;
+      var kebab = c.component.replace(/[A-Z]/g, function (m, i) { return (i ? '-' : '') + m.toLowerCase(); });
+      detachByName[kebab] = c;
+      detachByName[c.component.toLowerCase()] = c;
+    });
+
+    coveredList.sort();
+    missingList.sort(function (a, b) {
+      return (usageByName[b] || 0) - (usageByName[a] || 0);
+    });
+
+    coveredList.forEach(function (name) {
+      var use = usageByName[name] || 0;
+      covered.appendChild(el('span', {
+        className: 'code-chip code-chip-covered',
+        dataset: { tip: name + (use ? '\n' + fmtNum(use) + ' usages' : '') + '\nArcade themed' },
+        textContent: name,
+      }));
+    });
+
+    missingList.forEach(function (name) {
+      var use = usageByName[name] || 0;
+      var detEntry = detachByName[name];
+      var tipParts = [name];
+      if (use) tipParts.push(fmtNum(use) + ' usages');
+      if (detEntry) tipParts.push(fmtPct((detEntry.meaningfulDetachmentRate || 0) * 100) + ' meaningful detachment');
+      tipParts.push('No Arcade theme');
+      missing.appendChild(el('span', {
+        className: 'code-chip code-chip-missing',
+        dataset: { tip: tipParts.join('\n') },
+        textContent: name + (use ? ' · ' + fmtNum(use) : ''),
+      }));
+    });
+  }
+
+  // ---- Code Components panel ----
+
+  function renderCodeComponents(snap) {
+    var body = document.getElementById('code-components-body');
+    var filterInput = document.getElementById('code-components-filter');
+    if (!body) return;
+
+    var byCov = {};
+    ((snap && snap.coverage && snap.coverage.byComponent) || []).forEach(function (c) {
+      byCov[c.component + '|' + c.module] = c.usages;
+    });
+
+    var rows = ((snap && snap.detachment && snap.detachment.byComponent) || []).map(function (c) {
+      var tg = c.tokensByGroup || {};
+      var colors = (tg.colors || []).reduce(function (a, t) { return a + t.count; }, 0);
+      var sizes  = (tg.sizes  || []).reduce(function (a, t) { return a + t.count; }, 0);
+      var typo   = (tg.typography || []).reduce(function (a, t) { return a + t.count; }, 0);
+      return {
+        component: c.component,
+        module: c.module,
+        totalUsages: c.totalUsages || 0,
+        detachmentRate: c.detachmentRate || 0,
+        meaningfulDetachmentRate: c.meaningfulDetachmentRate || 0,
+        colors: colors,
+        sizes: sizes,
+        typography: typo,
+        raw: c,
+      };
+    });
+
+    state.codeComponentsRows = rows;
+    state.codeComponentsSort = state.codeComponentsSort || { key: 'totalUsages', dir: 'desc' };
+    state.codeComponentsModule = state.codeComponentsModule || 'all';
+    state.codeComponentsFilter = state.codeComponentsFilter || '';
+
+    if (filterInput && !filterInput.__wired) {
+      filterInput.__wired = true;
+      filterInput.addEventListener('input', function () {
+        state.codeComponentsFilter = filterInput.value.toLowerCase();
+        paintCodeComponents();
+      });
+    }
+
+    var moduleBtns = document.querySelectorAll('#panel-code-components .pill-group .pill');
+    moduleBtns.forEach(function (btn) {
+      if (btn.__wired) return;
+      btn.__wired = true;
+      btn.addEventListener('click', function () {
+        moduleBtns.forEach(function (b) { b.classList.remove('active'); });
+        btn.classList.add('active');
+        state.codeComponentsModule = btn.dataset.module;
+        paintCodeComponents();
+      });
+    });
+
+    var table = document.getElementById('code-components-table');
+    if (table) {
+      table.querySelectorAll('.sortable').forEach(function (th) {
+        if (th.__wired) return;
+        th.__wired = true;
+        th.addEventListener('click', function () {
+          var key = th.dataset.sort;
+          if (state.codeComponentsSort.key === key) {
+            state.codeComponentsSort.dir = state.codeComponentsSort.dir === 'asc' ? 'desc' : 'asc';
+          } else {
+            state.codeComponentsSort.key = key;
+            state.codeComponentsSort.dir = (key === 'component' || key === 'module') ? 'asc' : 'desc';
+          }
+          paintCodeComponents();
+        });
+      });
+    }
+
+    paintCodeComponents();
+
+    function paintCodeComponents() {
+      var filtered = state.codeComponentsRows.filter(function (r) {
+        if (state.codeComponentsModule !== 'all' && r.module !== state.codeComponentsModule) return false;
+        if (state.codeComponentsFilter && r.component.toLowerCase().indexOf(state.codeComponentsFilter) < 0) return false;
+        return true;
+      });
+      var mult = state.codeComponentsSort.dir === 'asc' ? 1 : -1;
+      var key = state.codeComponentsSort.key;
+      filtered.sort(function (a, b) {
+        var av = a[key], bv = b[key];
+        if (typeof av === 'string') return (av < bv ? -1 : av > bv ? 1 : 0) * mult;
+        return ((av || 0) - (bv || 0)) * mult;
+      });
+
+      var tableEl = document.getElementById('code-components-table');
+      if (tableEl) {
+        tableEl.querySelectorAll('.sort-icon').forEach(function (ic) { ic.className = 'sort-icon'; });
+        var activeTh = tableEl.querySelector('[data-sort="' + state.codeComponentsSort.key + '"] .sort-icon');
+        if (activeTh) activeTh.className = 'sort-icon ' + state.codeComponentsSort.dir;
+      }
+
+      var max = 1;
+      filtered.forEach(function (r) { if (r.meaningfulDetachmentRate > max) max = r.meaningfulDetachmentRate; });
+
+      body.innerHTML = '';
+      if (!filtered.length) {
+        var tr = el('tr');
+        tr.innerHTML = '<td colspan="9" style="text-align:center;padding:24px;color:hsl(320, 2%, 64%);">No components match the current filter</td>';
+        body.appendChild(tr);
+        return;
+      }
+
+      filtered.forEach(function (r) {
+        var det = (r.detachmentRate * 100).toFixed(r.detachmentRate < 0.1 ? 1 : 0) + '%';
+        var mean = (r.meaningfulDetachmentRate * 100).toFixed(r.meaningfulDetachmentRate < 0.1 ? 1 : 0) + '%';
+        var barW = Math.min(100, (r.meaningfulDetachmentRate / 1) * 100);
+        var barColor = r.meaningfulDetachmentRate >= 0.6 ? CODE_COLORS.detach
+                     : r.meaningfulDetachmentRate >= 0.3 ? 'hsl(48, 100%, 51%)'
+                     : CODE_COLORS.adoption;
+        var moduleClass = r.module === 'dls23' ? 'badge-dls23' : 'badge-dls22';
+
+        var tr = el('tr');
+        tr.innerHTML =
+          '<td>' + escapeHtml(r.component) + '</td>' +
+          '<td><span class="code-module-badge ' + moduleClass + '">' + r.module + '</span></td>' +
+          '<td class="num">' + fmtNum(r.totalUsages) + '</td>' +
+          '<td class="num">' + det + '</td>' +
+          '<td class="num">' + mean + '</td>' +
+          '<td class="num">' + fmtNum(r.colors) + '</td>' +
+          '<td class="num">' + fmtNum(r.sizes) + '</td>' +
+          '<td class="num">' + fmtNum(r.typography) + '</td>' +
+          '<td><div class="code-components-bar"><div style="width:' + barW + '%;background:' + barColor + '"></div></div></td>';
+        body.appendChild(tr);
+      });
+    }
+  }
+
+  // ---- Code entrypoint ----
+
+  function renderCodeCoverage(codeSnapshots) {
+    if (!codeSnapshots || !codeSnapshots.length) {
+      document.querySelectorAll('[data-kpi-row]').forEach(function (r) {
+        r.innerHTML = '<div class="heatmap-empty">No code snapshots found. Add JSON files to <code>data/code-snapshots/</code>.</div>';
+      });
+      return;
+    }
+
+    var latest = codeSnapshots[codeSnapshots.length - 1].data;
+    var first = codeSnapshots[0].data;
+    var metrics = computeCodeMetrics(latest);
+    var firstMetrics = codeSnapshots.length > 1 ? computeCodeMetrics(first) : null;
+
+    renderCodeKpis(metrics, firstMetrics);
+
+    // Coverage panel
+    renderCodeAdoptionChart(codeSnapshots);
+    renderCodeUsageChart(codeSnapshots);
+    renderCodeMigrationList(latest);
+
+    // Detachment panel
+    renderCodeDetachChart(codeSnapshots);
+    renderCodeSemanticChart(codeSnapshots);
+    renderCodeFrictionChart(latest);
+    renderCodeTokenList(latest);
+
+    // Arcade panel
+    renderCodeArcadeChart(codeSnapshots);
+    renderCodeArcadeGrid(latest);
+
+    // Components panel
+    renderCodeComponents(latest);
+  }
+
   // ---- Utility ----
 
   function escapeHtml(str) {
@@ -1527,6 +2367,7 @@
     if (audit && audit.files) {
       parts.push(audit.files.length + ' files');
     }
+    meta.dataset.source = 'design';
     meta.textContent = parts.join(' \u00b7 ');
   }
 
@@ -1623,13 +2464,8 @@
         state.canonical = canonical;
         state.snapshotMetrics = data.snapshotMetrics || null;
 
-        var hasData = (audit && audit.files && audit.files.length > 0) ||
-                      (analytics && (analytics.dls || analytics.arcade));
-
-        if (!hasData) {
-          showEmpty();
-          return;
-        }
+        var hasDesignData = (audit && audit.files && audit.files.length > 0) ||
+                            (analytics && (analytics.dls || analytics.arcade));
 
         // Load snapshots: use embedded data or fetch from server
         var snapshotsReady;
@@ -1639,19 +2475,68 @@
           snapshotsReady = loadSnapshots();
         }
 
-        snapshotsReady.then(function (snapshots) {
-          state.snapshots = snapshots;
-          initSnapshotSelector(snapshots, canonical);
-          initInventoryControls(analytics, canonical);
-          renderDashboard(analytics, audit, canonical);
+        var codeSnapshotsReady;
+        if (data.codeSnapshots && data.codeSnapshots.length > 0) {
+          codeSnapshotsReady = Promise.resolve(data.codeSnapshots);
+        } else {
+          codeSnapshotsReady = loadCodeSnapshots();
+        }
 
-          // Resize handler for charts
+        Promise.all([snapshotsReady, codeSnapshotsReady]).then(function (results) {
+          var snapshots = results[0];
+          var codeSnapshots = results[1];
+          state.snapshots = snapshots;
+          state.codeSnapshots = codeSnapshots;
+
+          var hasCodeData = codeSnapshots && codeSnapshots.length > 0;
+          if (!hasDesignData && !hasCodeData) {
+            showEmpty();
+            return;
+          }
+
+          if (hasDesignData) {
+            initSnapshotSelector(snapshots, canonical);
+            initInventoryControls(analytics, canonical);
+            renderDashboard(analytics, audit, canonical);
+          } else {
+            // Design data missing — hide design-only tabs + their group label, jump to Code
+            ['tab-coverage', 'tab-inventory', 'tab-migration'].forEach(function (id) {
+              var t = document.getElementById(id);
+              if (t) t.style.display = 'none';
+            });
+            document.querySelectorAll('.tab-group-label, .tab-group-spacer').forEach(function (el) {
+              el.style.display = 'none';
+            });
+            var codeTab = document.getElementById('tab-code-coverage');
+            if (codeTab) codeTab.click();
+          }
+
+          if (hasCodeData) {
+            renderCodeCoverage(codeSnapshots);
+          } else {
+            // Hide code tabs entirely when no code data
+            ['tab-code-coverage', 'tab-code-detachment', 'tab-code-arcade', 'tab-code-components'].forEach(function (id) {
+              var t = document.getElementById(id);
+              if (t) t.style.display = 'none';
+            });
+          }
+
           var resizeTimer;
           window.addEventListener('resize', function () {
             clearTimeout(resizeTimer);
             resizeTimer = setTimeout(function () {
-              renderMigrationChart(state.analytics);
-              renderTrendChart(state.snapshots);
+              if (hasDesignData) {
+                renderMigrationChart(state.analytics);
+                renderTrendChart(state.snapshots);
+              }
+              if (hasCodeData) {
+                renderCodeAdoptionChart(state.codeSnapshots);
+                renderCodeUsageChart(state.codeSnapshots);
+                renderCodeDetachChart(state.codeSnapshots);
+                renderCodeSemanticChart(state.codeSnapshots);
+                renderCodeFrictionChart(state.codeSnapshots[state.codeSnapshots.length - 1].data);
+                renderCodeArcadeChart(state.codeSnapshots);
+              }
             }, 200);
           });
         });

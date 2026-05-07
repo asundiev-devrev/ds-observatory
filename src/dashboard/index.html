@@ -14,24 +14,39 @@
     <header class="header">
       <div class="header-content">
         <h1 class="header-title">Design System Observatory</h1>
+        <div class="header-meta" id="header-meta"></div>
       </div>
     </header>
 
     <nav class="tab-bar" role="tablist" aria-label="Dashboard sections">
+      <span class="tab-group-label" aria-hidden="true">Design</span>
       <button class="tab" role="tab" aria-selected="true" aria-controls="panel-coverage" id="tab-coverage" tabindex="0">
-        Design coverage
+        Coverage
       </button>
       <button class="tab" role="tab" aria-selected="false" aria-controls="panel-inventory" id="tab-inventory" tabindex="-1">
-        Component inventory
+        Inventory
+      </button>
+      <button class="tab" role="tab" aria-selected="false" aria-controls="panel-migration" id="tab-migration" tabindex="-1">
+        Migration
       </button>
       <!-- File health tab hidden for now — focusing on higher-level views -->
       <button class="tab" role="tab" aria-selected="false" aria-controls="panel-health" id="tab-health" tabindex="-1" style="display:none">
         File health
       </button>
-      <button class="tab" role="tab" aria-selected="false" aria-controls="panel-migration" id="tab-migration" tabindex="-1">
-        Migration tracker
+      <span class="tab-group-spacer" aria-hidden="true"></span>
+      <span class="tab-group-label" aria-hidden="true">Code</span>
+      <button class="tab" role="tab" aria-selected="false" aria-controls="panel-code-coverage" id="tab-code-coverage" tabindex="-1">
+        Coverage
       </button>
-      <div class="header-meta" id="header-meta"></div>
+      <button class="tab" role="tab" aria-selected="false" aria-controls="panel-code-detachment" id="tab-code-detachment" tabindex="-1">
+        Detachment
+      </button>
+      <button class="tab" role="tab" aria-selected="false" aria-controls="panel-code-arcade" id="tab-code-arcade" tabindex="-1">
+        Arcade
+      </button>
+      <button class="tab" role="tab" aria-selected="false" aria-controls="panel-code-components" id="tab-code-components" tabindex="-1">
+        Components
+      </button>
     </nav>
 
     <main class="main">
@@ -51,6 +66,100 @@
           <div class="cg-activity" id="activity-card" style="display:none">
             <div class="cg-activity-label">Activity</div>
             <div id="activity-grid"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel hidden" role="tabpanel" id="panel-code-coverage" aria-labelledby="tab-code-coverage" hidden>
+        <div class="code-kpis" data-kpi-row></div>
+        <div class="code-charts">
+          <div class="code-card">
+            <div class="code-card-title">DLS23 adoption rate over time</div>
+            <div class="chart-container"><canvas id="code-adoption-chart" width="800" height="240"></canvas></div>
+          </div>
+          <div class="code-card">
+            <div class="code-card-title">Usage counts over time</div>
+            <div class="chart-container"><canvas id="code-usage-chart" width="800" height="240"></canvas></div>
+            <div class="chart-legend" id="code-usage-legend"></div>
+          </div>
+        </div>
+        <div class="code-card">
+          <div class="code-card-title">DLS22 migration targets</div>
+          <p class="card-desc" id="code-migration-desc"></p>
+          <div id="code-migration-list"></div>
+        </div>
+      </section>
+
+      <section class="panel hidden" role="tabpanel" id="panel-code-detachment" aria-labelledby="tab-code-detachment" hidden>
+        <div class="code-kpis" data-kpi-row></div>
+        <div class="code-charts">
+          <div class="code-card">
+            <div class="code-card-title">Meaningful detachment rate over time</div>
+            <div class="chart-container"><canvas id="code-detach-chart" width="800" height="240"></canvas></div>
+          </div>
+          <div class="code-card">
+            <div class="code-card-title">Detachment by semantic group over time</div>
+            <div class="chart-container"><canvas id="code-semantic-chart" width="800" height="240"></canvas></div>
+            <div class="chart-legend" id="code-semantic-legend"></div>
+          </div>
+        </div>
+        <div class="code-card">
+          <div class="code-card-title">Friction hotspots</div>
+          <p class="card-desc">Components that are both heavily used and heavily overridden — candidates for absorbing overrides into the system.</p>
+          <div class="chart-container"><canvas id="code-friction-chart" width="800" height="360"></canvas></div>
+        </div>
+        <div class="code-card">
+          <div class="code-card-title">Top override tokens (globally)</div>
+          <p class="card-desc">The className tokens users reach for most often — absorbing these into components yields the highest leverage.</p>
+          <div class="token-tabs" id="code-token-tabs" role="tablist" aria-label="Semantic group"></div>
+          <div id="code-token-list"></div>
+        </div>
+      </section>
+
+      <section class="panel hidden" role="tabpanel" id="panel-code-arcade" aria-labelledby="tab-code-arcade" hidden>
+        <div class="code-kpis" data-kpi-row></div>
+        <div class="code-card">
+          <div class="code-card-title">Arcade theme coverage over time</div>
+          <div class="chart-container"><canvas id="code-arcade-chart" width="800" height="240"></canvas></div>
+        </div>
+        <div class="code-card">
+          <div class="code-card-title">Component coverage</div>
+          <p class="card-desc" id="code-arcade-desc"></p>
+          <div class="code-chip-grid-label">Themed</div>
+          <div class="code-chip-grid" id="code-arcade-covered"></div>
+          <div class="code-chip-grid-label">Not themed — ranked by usage</div>
+          <div class="code-chip-grid" id="code-arcade-missing"></div>
+        </div>
+      </section>
+
+      <section class="panel hidden" role="tabpanel" id="panel-code-components" aria-labelledby="tab-code-components" hidden>
+        <div class="code-kpis" data-kpi-row></div>
+        <div class="code-card">
+          <div class="code-components-controls">
+            <input type="search" class="code-components-filter" id="code-components-filter" placeholder="Filter components…" aria-label="Filter components" />
+            <div class="pill-group" role="group" aria-label="Module filter">
+              <button class="pill active" data-module="all">All modules</button>
+              <button class="pill" data-module="dls23">DLS23</button>
+              <button class="pill" data-module="dls22">DLS22</button>
+            </div>
+          </div>
+          <div class="table-scroll">
+            <table class="data-table code-components-table" id="code-components-table">
+              <thead>
+                <tr>
+                  <th class="sortable" data-sort="component">Component <span class="sort-icon"></span></th>
+                  <th class="sortable" data-sort="module">Module <span class="sort-icon"></span></th>
+                  <th class="sortable num" data-sort="totalUsages">Usages <span class="sort-icon"></span></th>
+                  <th class="sortable num" data-sort="detachmentRate">Detachment <span class="sort-icon"></span></th>
+                  <th class="sortable num" data-sort="meaningfulDetachmentRate">Meaningful <span class="sort-icon"></span></th>
+                  <th class="sortable num" data-sort="colors">Colors <span class="sort-icon"></span></th>
+                  <th class="sortable num" data-sort="sizes">Sizes <span class="sort-icon"></span></th>
+                  <th class="sortable num" data-sort="typography">Typo <span class="sort-icon"></span></th>
+                  <th>Bar</th>
+                </tr>
+              </thead>
+              <tbody id="code-components-body"></tbody>
+            </table>
           </div>
         </div>
       </section>
