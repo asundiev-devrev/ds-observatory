@@ -100,19 +100,41 @@ async function buildSnapshots(dataDir: string): Promise<{ metrics: SnapshotMetri
   const analyticsFiles: { ts: string; file: string }[] = [];
   const auditFiles: { ts: string; file: string }[] = [];
   for (const f of files) {
-    const m = f.match(/^(library-analytics|hot-file-audit)-(\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2})/);
+    const m = f.match(/^(library-analytics|hot-file-audit)-(\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}\.\d{3}Z)/);
     if (!m) continue;
     if (m[1] === 'library-analytics') analyticsFiles.push({ ts: m[2], file: f });
     else auditFiles.push({ ts: m[2], file: f });
   }
 
-  const auditMap = new Map<string, string>();
-  auditFiles.forEach(a => auditMap.set(a.ts, a.file));
+  // analytics and audit are written sequentially by collect, so their filenames
+  // may straddle a second boundary. Pair each analytics with the nearest audit
+  // within a 60s window, consuming audits so each is used at most once.
+  const PAIR_WINDOW_MS = 60_000;
+  const tsToMs = (ts: string): number =>
+    new Date(ts.replace(/T(\d{2})-(\d{2})-(\d{2})/, 'T$1:$2:$3')).getTime();
 
-  const pairs = analyticsFiles
-    .filter(a => auditMap.has(a.ts))
-    .map(a => ({ ts: a.ts, analyticsFile: a.file, auditFile: auditMap.get(a.ts)! }))
-    .sort((a, b) => a.ts.localeCompare(b.ts));
+  const analyticsSorted = [...analyticsFiles].sort((a, b) => tsToMs(a.ts) - tsToMs(b.ts));
+  const auditsRemaining = [...auditFiles];
+  const pairs: { ts: string; analyticsFile: string; auditFile: string }[] = [];
+
+  for (const a of analyticsSorted) {
+    const aMs = tsToMs(a.ts);
+    let bestIdx = -1;
+    let bestDelta = Infinity;
+    for (let i = 0; i < auditsRemaining.length; i++) {
+      const delta = Math.abs(tsToMs(auditsRemaining[i].ts) - aMs);
+      if (delta < bestDelta) {
+        bestDelta = delta;
+        bestIdx = i;
+      }
+    }
+    if (bestIdx >= 0 && bestDelta <= PAIR_WINDOW_MS) {
+      const [audit] = auditsRemaining.splice(bestIdx, 1);
+      pairs.push({ ts: a.ts, analyticsFile: a.file, auditFile: audit.file });
+    }
+  }
+
+  pairs.sort((a, b) => tsToMs(a.ts) - tsToMs(b.ts));
 
   const metrics: SnapshotMetric[] = [];
   const snapshots: SlimSnapshot[] = [];
