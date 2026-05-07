@@ -1569,13 +1569,14 @@
   function codeTrendCell(curr, prev, opts) {
     opts = opts || {};
     if (prev === null || prev === undefined) return '';
-    var diff = opts.invert ? prev - curr : curr - prev;
-    if (Math.abs(diff) <= 0.5) return '';
-    var cls = diff > 0 ? 'trend-up' : 'trend-down';
-    var arrow = diff > 0 ? '↑' : '↓';
+    var rawDiff = curr - prev;
+    if (Math.abs(rawDiff) <= 0.5) return '';
+    var goodDirection = opts.invert ? rawDiff < 0 : rawDiff > 0;
+    var cls = goodDirection ? 'trend-up' : 'trend-down';
+    var arrow = rawDiff > 0 ? '↑' : '↓';
     var suffix = opts.suffix !== undefined ? opts.suffix : 'pp';
-    var raw = Math.abs(diff);
-    var formatted = opts.integer ? String(Math.round(raw)) : raw.toFixed(1);
+    var abs = Math.abs(rawDiff);
+    var formatted = opts.integer ? String(Math.round(abs)) : abs.toFixed(1);
     return ' <span class="' + cls + '">' + arrow + ' ' + formatted + suffix + '</span>';
   }
 
