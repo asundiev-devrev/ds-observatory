@@ -37,6 +37,19 @@ export async function serveCommand(options: ServeOptions): Promise<void> {
       return;
     }
 
+    if (url === '/data/code-snapshots/') {
+      try {
+        const snapshotDir = path.join(dataDir, 'code-snapshots');
+        const files = fs.readdirSync(snapshotDir).filter(f => f.endsWith('.json'));
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify(files));
+      } catch {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end('[]');
+      }
+      return;
+    }
+
     if (url.startsWith('/data/')) {
       const filePath = path.join(dataDir, url.slice(6));
       return serveFile(filePath, res);
