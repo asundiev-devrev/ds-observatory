@@ -32,7 +32,9 @@ Two consumers of that data:
 - `ds-observatory serve` — local dashboard (HTML + JS + Canvas charts, no build step).
 - `ds-observatory report` — one self-contained HTML file with all data inlined, deployable to GitHub Pages.
 
-Want to build a dashboard in the same visual style? See **[design.md](design.md)** — a copy-paste recipe for the tokens, layout, charts, and patterns used here.
+Want to build a dashboard in the same visual style?
+- **[design.md](design.md)** — copy-paste recipe for the tokens, layout, charts, and patterns used here.
+- **[observatory-dashboard-style.skill](observatory-dashboard-style.skill)** — installable Claude Code skill that wraps the recipe, so Claude picks up the style automatically whenever you ask for a dashboard. Install from Claude Code with `/plugin install`.
 
 ---
 
