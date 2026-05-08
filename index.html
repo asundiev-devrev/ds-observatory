@@ -3398,9 +3398,14 @@ window.__DS_OBSERVATORY_DATA__ = {
 
   function setupCanvas(canvas) {
     var dpr = window.devicePixelRatio || 1;
+    // Cache the intrinsic CSS height once — later renders must not read the
+    // mutated canvas.height attribute, or the height doubles on every redraw.
+    if (!canvas.dataset.baseHeight) {
+      canvas.dataset.baseHeight = canvas.getAttribute('height') || '240';
+    }
+    var h = parseInt(canvas.dataset.baseHeight, 10) || 240;
     var parent = canvas.parentElement;
     var w = (parent && parent.clientWidth) || 800;
-    var h = parseInt(canvas.getAttribute('height') || '240', 10);
     canvas.width = w * dpr;
     canvas.height = h * dpr;
     canvas.style.width = w + 'px';
