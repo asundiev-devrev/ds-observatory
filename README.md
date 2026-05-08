@@ -32,6 +32,8 @@ Two consumers of that data:
 - `ds-observatory serve` — local dashboard (HTML + JS + Canvas charts, no build step).
 - `ds-observatory report` — one self-contained HTML file with all data inlined, deployable to GitHub Pages.
 
+Want to build a dashboard in the same visual style? See **[design.md](design.md)** — a copy-paste recipe for the tokens, layout, charts, and patterns used here.
+
 ---
 
 ## Prerequisites
