@@ -173,8 +173,6 @@
         renderCodeDetachChart(snaps);
         renderCodeSemanticChart(snaps);
         renderCodeFrictionChart(latest);
-      } else if (id === 'tab-code-arcade') {
-        renderCodeArcadeChart(snaps);
       }
     }
 
@@ -1589,24 +1587,19 @@
 
     var items = [
       {
+        label: 'DLS22 usages',
+        value: fmtNum(metrics.dls22Usages),
+        trend: codeTrendCell(metrics.dls22Usages, firstMetrics ? firstMetrics.dls22Usages : null, { invert: true, integer: true, suffix: '' }) + (firstMetrics ? '<span class="kpi-trend-note">' + trendLabel + '</span>' : ''),
+      },
+      {
         label: 'DLS23 adoption',
         value: fmtPct(metrics.adoption),
         trend: codeTrendCell(metrics.adoption, firstMetrics ? firstMetrics.adoption : null) + (firstMetrics ? '<span class="kpi-trend-note">' + trendLabel + '</span>' : ''),
       },
       {
-        label: 'Meaningful detachment',
+        label: 'Bad customisations',
         value: fmtPct(metrics.meaningful),
         trend: codeTrendCell(metrics.meaningful, firstMetrics ? firstMetrics.meaningful : null, { invert: true }) + (firstMetrics ? '<span class="kpi-trend-note">' + trendLabel + '</span>' : ''),
-      },
-      {
-        label: 'Arcade coverage',
-        value: fmtPct(metrics.arcade),
-        trend: codeTrendCell(metrics.arcade, firstMetrics ? firstMetrics.arcade : null) + (firstMetrics ? '<span class="kpi-trend-note">' + trendLabel + '</span>' : ''),
-      },
-      {
-        label: 'DLS22 usages',
-        value: fmtNum(metrics.dls22Usages),
-        trend: codeTrendCell(metrics.dls22Usages, firstMetrics ? firstMetrics.dls22Usages : null, { invert: true, integer: true, suffix: '' }) + (firstMetrics ? '<span class="kpi-trend-note">' + trendLabel + '</span>' : ''),
       },
     ];
 
@@ -2331,10 +2324,6 @@
     renderCodeFrictionChart(latest);
     renderCodeTokenList(latest);
 
-    // Arcade panel
-    renderCodeArcadeChart(codeSnapshots);
-    renderCodeArcadeGrid(latest);
-
     // Components panel
     renderCodeComponents(latest);
   }
@@ -2521,7 +2510,7 @@
             renderCodeCoverage(codeSnapshots);
           } else {
             // Hide code tabs entirely when no code data
-            ['tab-code-coverage', 'tab-code-detachment', 'tab-code-arcade', 'tab-code-components'].forEach(function (id) {
+            ['tab-code-coverage', 'tab-code-detachment', 'tab-code-components'].forEach(function (id) {
               var t = document.getElementById(id);
               if (t) t.style.display = 'none';
             });
@@ -2541,7 +2530,6 @@
                 renderCodeDetachChart(state.codeSnapshots);
                 renderCodeSemanticChart(state.codeSnapshots);
                 renderCodeFrictionChart(state.codeSnapshots[state.codeSnapshots.length - 1].data);
-                renderCodeArcadeChart(state.codeSnapshots);
               }
             }, 200);
           });

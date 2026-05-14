@@ -41,9 +41,6 @@
       <button class="tab" role="tab" aria-selected="false" aria-controls="panel-code-detachment" id="tab-code-detachment" tabindex="-1">
         Detachment
       </button>
-      <button class="tab" role="tab" aria-selected="false" aria-controls="panel-code-arcade" id="tab-code-arcade" tabindex="-1">
-        Arcade
-      </button>
       <button class="tab" role="tab" aria-selected="false" aria-controls="panel-code-components" id="tab-code-components" tabindex="-1">
         Components
       </button>
@@ -94,7 +91,7 @@
         <div class="code-kpis" data-kpi-row></div>
         <div class="code-charts">
           <div class="code-card">
-            <div class="code-card-title">Meaningful detachment rate over time</div>
+            <div class="code-card-title">Bad customisations rate over time</div>
             <div class="chart-container"><canvas id="code-detach-chart" width="800" height="240"></canvas></div>
           </div>
           <div class="code-card">
@@ -113,22 +110,6 @@
           <p class="card-desc">The className tokens users reach for most often — absorbing these into components yields the highest leverage.</p>
           <div class="token-tabs" id="code-token-tabs" role="tablist" aria-label="Semantic group"></div>
           <div id="code-token-list"></div>
-        </div>
-      </section>
-
-      <section class="panel hidden" role="tabpanel" id="panel-code-arcade" aria-labelledby="tab-code-arcade" hidden>
-        <div class="code-kpis" data-kpi-row></div>
-        <div class="code-card">
-          <div class="code-card-title">Arcade theme coverage over time</div>
-          <div class="chart-container"><canvas id="code-arcade-chart" width="800" height="240"></canvas></div>
-        </div>
-        <div class="code-card">
-          <div class="code-card-title">Component coverage</div>
-          <p class="card-desc" id="code-arcade-desc"></p>
-          <div class="code-chip-grid-label">Themed</div>
-          <div class="code-chip-grid" id="code-arcade-covered"></div>
-          <div class="code-chip-grid-label">Not themed — ranked by usage</div>
-          <div class="code-chip-grid" id="code-arcade-missing"></div>
         </div>
       </section>
 
