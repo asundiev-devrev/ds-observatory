@@ -1150,7 +1150,7 @@ ul { list-style: none; }
 
 .code-kpis {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: var(--sp-sm);
 }
 .code-kpi {
@@ -1536,9 +1536,6 @@ ul { list-style: none; }
       <button class="tab" role="tab" aria-selected="false" aria-controls="panel-code-detachment" id="tab-code-detachment" tabindex="-1">
         Detachment
       </button>
-      <button class="tab" role="tab" aria-selected="false" aria-controls="panel-code-arcade" id="tab-code-arcade" tabindex="-1">
-        Arcade
-      </button>
       <button class="tab" role="tab" aria-selected="false" aria-controls="panel-code-components" id="tab-code-components" tabindex="-1">
         Components
       </button>
@@ -1589,7 +1586,7 @@ ul { list-style: none; }
         <div class="code-kpis" data-kpi-row></div>
         <div class="code-charts">
           <div class="code-card">
-            <div class="code-card-title">Meaningful detachment rate over time</div>
+            <div class="code-card-title">Bad customisations rate over time</div>
             <div class="chart-container"><canvas id="code-detach-chart" width="800" height="240"></canvas></div>
           </div>
           <div class="code-card">
@@ -1608,22 +1605,6 @@ ul { list-style: none; }
           <p class="card-desc">The className tokens users reach for most often — absorbing these into components yields the highest leverage.</p>
           <div class="token-tabs" id="code-token-tabs" role="tablist" aria-label="Semantic group"></div>
           <div id="code-token-list"></div>
-        </div>
-      </section>
-
-      <section class="panel hidden" role="tabpanel" id="panel-code-arcade" aria-labelledby="tab-code-arcade" hidden>
-        <div class="code-kpis" data-kpi-row></div>
-        <div class="code-card">
-          <div class="code-card-title">Arcade theme coverage over time</div>
-          <div class="chart-container"><canvas id="code-arcade-chart" width="800" height="240"></canvas></div>
-        </div>
-        <div class="code-card">
-          <div class="code-card-title">Component coverage</div>
-          <p class="card-desc" id="code-arcade-desc"></p>
-          <div class="code-chip-grid-label">Themed</div>
-          <div class="code-chip-grid" id="code-arcade-covered"></div>
-          <div class="code-chip-grid-label">Not themed — ranked by usage</div>
-          <div class="code-chip-grid" id="code-arcade-missing"></div>
         </div>
       </section>
 
@@ -1930,8 +1911,6 @@ window.__DS_OBSERVATORY_DATA__ = {
         renderCodeDetachChart(snaps);
         renderCodeSemanticChart(snaps);
         renderCodeFrictionChart(latest);
-      } else if (id === 'tab-code-arcade') {
-        renderCodeArcadeChart(snaps);
       }
     }
 
@@ -3346,24 +3325,19 @@ window.__DS_OBSERVATORY_DATA__ = {
 
     var items = [
       {
+        label: 'DLS22 usages',
+        value: fmtNum(metrics.dls22Usages),
+        trend: codeTrendCell(metrics.dls22Usages, firstMetrics ? firstMetrics.dls22Usages : null, { invert: true, integer: true, suffix: '' }) + (firstMetrics ? '<span class="kpi-trend-note">' + trendLabel + '</span>' : ''),
+      },
+      {
         label: 'DLS23 adoption',
         value: fmtPct(metrics.adoption),
         trend: codeTrendCell(metrics.adoption, firstMetrics ? firstMetrics.adoption : null) + (firstMetrics ? '<span class="kpi-trend-note">' + trendLabel + '</span>' : ''),
       },
       {
-        label: 'Meaningful detachment',
+        label: 'Bad customisations',
         value: fmtPct(metrics.meaningful),
         trend: codeTrendCell(metrics.meaningful, firstMetrics ? firstMetrics.meaningful : null, { invert: true }) + (firstMetrics ? '<span class="kpi-trend-note">' + trendLabel + '</span>' : ''),
-      },
-      {
-        label: 'Arcade coverage',
-        value: fmtPct(metrics.arcade),
-        trend: codeTrendCell(metrics.arcade, firstMetrics ? firstMetrics.arcade : null) + (firstMetrics ? '<span class="kpi-trend-note">' + trendLabel + '</span>' : ''),
-      },
-      {
-        label: 'DLS22 usages',
-        value: fmtNum(metrics.dls22Usages),
-        trend: codeTrendCell(metrics.dls22Usages, firstMetrics ? firstMetrics.dls22Usages : null, { invert: true, integer: true, suffix: '' }) + (firstMetrics ? '<span class="kpi-trend-note">' + trendLabel + '</span>' : ''),
       },
     ];
 
@@ -4088,10 +4062,6 @@ window.__DS_OBSERVATORY_DATA__ = {
     renderCodeFrictionChart(latest);
     renderCodeTokenList(latest);
 
-    // Arcade panel
-    renderCodeArcadeChart(codeSnapshots);
-    renderCodeArcadeGrid(latest);
-
     // Components panel
     renderCodeComponents(latest);
   }
@@ -4278,7 +4248,7 @@ window.__DS_OBSERVATORY_DATA__ = {
             renderCodeCoverage(codeSnapshots);
           } else {
             // Hide code tabs entirely when no code data
-            ['tab-code-coverage', 'tab-code-detachment', 'tab-code-arcade', 'tab-code-components'].forEach(function (id) {
+            ['tab-code-coverage', 'tab-code-detachment', 'tab-code-components'].forEach(function (id) {
               var t = document.getElementById(id);
               if (t) t.style.display = 'none';
             });
@@ -4298,7 +4268,6 @@ window.__DS_OBSERVATORY_DATA__ = {
                 renderCodeDetachChart(state.codeSnapshots);
                 renderCodeSemanticChart(state.codeSnapshots);
                 renderCodeFrictionChart(state.codeSnapshots[state.codeSnapshots.length - 1].data);
-                renderCodeArcadeChart(state.codeSnapshots);
               }
             }, 200);
           });
