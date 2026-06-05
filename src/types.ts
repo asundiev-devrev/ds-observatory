@@ -6,6 +6,7 @@ export interface Config {
   figmaDsTeamId: string;
   dlsLibraryKey: string;
   arcadeLibraryKey: string;
+  arcade3LibraryKey: string;
   hotFileCount: number;
   hotFileWindowDays: number;
 }
@@ -51,6 +52,7 @@ export interface LibraryAnalyticsData {
 // ---- Hot-File Traversal ----
 
 export type NodeCategory =
+  | 'dsArcade3'
   | 'dsArcade'
   | 'dsDls'
   | 'dsOther'
@@ -59,7 +61,11 @@ export type NodeCategory =
   | 'raw';
 
 export interface NodeBreakdown {
+  /** Arcade 0.3 — new source of truth (a2uKnm88...) */
+  dsArcade3: number;
+  /** Arcade 0.2 — current official, deprecating (loThitjZ...) */
   dsArcade: number;
+  /** DLS Components — oldest legacy (rNeWrFnP...) */
   dsDls: number;
   dsOther: number;
   detached: number;

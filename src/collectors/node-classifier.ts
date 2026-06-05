@@ -3,6 +3,7 @@ import type { FigmaNode, FigmaComponentMeta, NodeCategory } from '../types.js';
 interface LibraryKeys {
   dls: string;
   arcade: string;
+  arcade3: string;
 }
 
 export interface ClassificationResult {
@@ -51,8 +52,9 @@ export function classifyNode(
     }
 
     if (fileKey) {
-      if (fileKey === libraryKeys.dls) return { category: 'dsDls', sourceFileKey: fileKey };
+      if (fileKey === libraryKeys.arcade3) return { category: 'dsArcade3', sourceFileKey: fileKey };
       if (fileKey === libraryKeys.arcade) return { category: 'dsArcade', sourceFileKey: fileKey };
+      if (fileKey === libraryKeys.dls) return { category: 'dsDls', sourceFileKey: fileKey };
       return { category: 'dsOther', sourceFileKey: fileKey };
     }
 

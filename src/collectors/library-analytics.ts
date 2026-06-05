@@ -9,6 +9,7 @@ import type {
 interface CollectOptions {
   dlsLibraryKey: string;
   arcadeLibraryKey: string;
+  arcade3LibraryKey: string;
   teamId: string;
 }
 

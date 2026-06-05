@@ -89,7 +89,7 @@ async function fetchTeamComponentCatalog(
 function synthesizeLibraryAnalytics(
   fileEntries: HotFileEntry[],
   fileResponses: Map<string, FigmaFileResponse>,
-  libraryKeys: { dls: string; arcade: string },
+  libraryKeys: { dls: string; arcade: string; arcade3: string },
   keyToFileKey: Map<string, string>,
   keyToInfo: Map<string, ComponentInfo>,
 ): LibraryAnalyticsData {
@@ -112,7 +112,10 @@ function synthesizeLibraryAnalytics(
       const fileKey = meta.file_key ?? info?.fileKey ?? keyToFileKey.get(meta.key);
       if (!fileKey) continue;
 
-      const isArcade = fileKey === libraryKeys.arcade;
+      // Arcade 0.3 + 0.2 both bucket as "arcade" in synthesized analytics for now.
+      // The Coverage tab reads the audit breakdown (which keeps them split);
+      // Inventory/Migration get a proper 3-generation split in a follow-up.
+      const isArcade = fileKey === libraryKeys.arcade || fileKey === libraryKeys.arcade3;
       const isDls = fileKey === libraryKeys.dls;
       if (!isArcade && !isDls) continue;
 
@@ -139,13 +142,14 @@ function synthesizeLibraryAnalytics(
   const arcadeList = Array.from(arcadeComponents.values()).sort((a, b) => b.insertions - a.insertions);
 
   const fileBreakdown: FileBreakdownEntry[] = fileEntries.map((f) => {
-    const total = f.breakdown.dsDls + f.breakdown.dsArcade;
+    const arcadeAll = f.breakdown.dsArcade3 + f.breakdown.dsArcade;
+    const total = f.breakdown.dsDls + arcadeAll;
     return {
       fileKey: f.fileKey,
       fileName: f.fileName,
       dlsCount: f.breakdown.dsDls,
-      arcadeCount: f.breakdown.dsArcade,
-      arcadeRatio: total > 0 ? f.breakdown.dsArcade / total : 0,
+      arcadeCount: arcadeAll,
+      arcadeRatio: total > 0 ? arcadeAll / total : 0,
     };
   });
 
@@ -201,6 +205,7 @@ export async function collectCommand(options: CollectOptions): Promise<void> {
   let analyticsData = await collectLibraryAnalytics(client, {
     dlsLibraryKey: config.dlsLibraryKey,
     arcadeLibraryKey: config.arcadeLibraryKey,
+    arcade3LibraryKey: config.arcade3LibraryKey,
     teamId: config.figmaDsTeamId,
   });
 
@@ -222,9 +227,12 @@ export async function collectCommand(options: CollectOptions): Promise<void> {
   const componentNameToFileKey = new Map<string, string>();
   for (const info of keyToInfo.values()) {
     dsComponentNames.add(info.displayName);
-    // Prefer Arcade over DLS when a name exists in both libraries
+    // Prefer newest generation when a name exists in multiple libraries:
+    // Arcade 0.3 > Arcade 0.2 > DLS. Only upgrade the mapping, never downgrade.
     const existing = componentNameToFileKey.get(info.displayName);
-    if (!existing || info.fileKey === config.arcadeLibraryKey) {
+    const rank = (k: string): number =>
+      k === config.arcade3LibraryKey ? 3 : k === config.arcadeLibraryKey ? 2 : k === config.dlsLibraryKey ? 1 : 0;
+    if (!existing || rank(info.fileKey) > rank(existing)) {
       componentNameToFileKey.set(info.displayName, info.fileKey);
     }
   }
@@ -241,6 +249,7 @@ export async function collectCommand(options: CollectOptions): Promise<void> {
       const result = traverseFileTree(fileData, {
         dls: config.dlsLibraryKey,
         arcade: config.arcadeLibraryKey,
+        arcade3: config.arcade3LibraryKey,
       }, keyToFileKey, dsComponentNames, componentNameToFileKey);
       fileEntries.push({
         fileKey: file.fileKey,
@@ -268,7 +277,7 @@ export async function collectCommand(options: CollectOptions): Promise<void> {
     console.log('\nSynthesizing library analytics from file traversal data...');
     analyticsData = synthesizeLibraryAnalytics(
       fileEntries, fileResponses,
-      { dls: config.dlsLibraryKey, arcade: config.arcadeLibraryKey },
+      { dls: config.dlsLibraryKey, arcade: config.arcadeLibraryKey, arcade3: config.arcade3LibraryKey },
       keyToFileKey, keyToInfo,
     );
   }
@@ -285,15 +294,19 @@ export async function collectCommand(options: CollectOptions): Promise<void> {
   // Summary
   const totalSurface = fileEntries.reduce((s, f) => s + f.componentSurface, 0);
   const totalDs = fileEntries.reduce(
-    (s, f) => s + f.breakdown.dsArcade + f.breakdown.dsDls + f.breakdown.dsOther,
+    (s, f) => s + f.breakdown.dsArcade3 + f.breakdown.dsArcade + f.breakdown.dsDls + f.breakdown.dsOther,
     0,
   );
-  const totalArcade = fileEntries.reduce((s, f) => s + f.breakdown.dsArcade, 0);
+  const totalArcade3 = fileEntries.reduce((s, f) => s + f.breakdown.dsArcade3, 0);
+  const totalArcade2 = fileEntries.reduce((s, f) => s + f.breakdown.dsArcade, 0);
+  const totalDls = fileEntries.reduce((s, f) => s + f.breakdown.dsDls, 0);
   const totalDetached = fileEntries.reduce((s, f) => s + f.breakdown.detached, 0);
 
   console.log('\n--- Summary ---');
   console.log(`DS Coverage: ${totalSurface > 0 ? ((totalDs / totalSurface) * 100).toFixed(1) : 0}%`);
-  console.log(`Arcade Adoption: ${totalDs > 0 ? ((totalArcade / totalDs) * 100).toFixed(1) : 0}%`);
+  console.log(`Arcade 0.3 adoption: ${totalDs > 0 ? ((totalArcade3 / totalDs) * 100).toFixed(1) : 0}%`);
+  console.log(`Arcade 0.2 share: ${totalDs > 0 ? ((totalArcade2 / totalDs) * 100).toFixed(1) : 0}%`);
+  console.log(`Off DLS: ${totalDs > 0 ? (((totalDs - totalDls) / totalDs) * 100).toFixed(1) : 0}%`);
   console.log(`Detachment Rate: ${(totalDetached + totalDs) > 0 ? ((totalDetached / (totalDetached + totalDs)) * 100).toFixed(1) : 0}%`);
   console.log('\nData written to ./data/');
 }

@@ -11,10 +11,12 @@ interface ReportOptions {
 interface SnapshotMetric {
   timestamp: string;
   dsCoverage: number;
-  arcadeAdoption: number;
+  arcadeAdoption: number;   // Arcade 0.3 share of DS (new source of truth)
+  arcade2Share: number;     // Arcade 0.2 share of DS (deprecating)
+  offDls: number;           // % of DS that is NOT legacy DLS
   detachRate: number;
   totalDS: number;
-  totalArcade: number;
+  totalArcade: number;      // Arcade 0.3 instances
   totalDetached: number;
   totalComponentSurface: number;
 }
@@ -27,13 +29,17 @@ function computeSnapshotMetrics(audit: HotFileAuditData): SnapshotMetric | null 
   const files = audit?.files ?? [];
   if (!files.length) return null;
 
-  let totalDS = 0, totalArcade = 0, totalDetached = 0, totalComponentSurface = 0;
+  let totalDS = 0, totalArcade3 = 0, totalArcade2 = 0, totalDls = 0, totalDetached = 0, totalComponentSurface = 0;
 
   files.forEach((f: HotFileEntry) => {
     const b = f.breakdown;
     const suspected = (f.suspectedDetachments ?? []).length;
-    totalDS += b.dsArcade + b.dsDls + b.dsOther;
-    totalArcade += b.dsArcade;
+    // Older snapshots predate dsArcade3 — coalesce missing field to 0.
+    const arcade3 = b.dsArcade3 ?? 0;
+    totalDS += arcade3 + b.dsArcade + b.dsDls + b.dsOther;
+    totalArcade3 += arcade3;
+    totalArcade2 += b.dsArcade;
+    totalDls += b.dsDls;
     totalDetached += b.detached + suspected;
     totalComponentSurface += f.componentSurface + suspected;
   });
@@ -43,10 +49,12 @@ function computeSnapshotMetrics(audit: HotFileAuditData): SnapshotMetric | null 
   return {
     timestamp: '',
     dsCoverage: pct(totalDS, totalComponentSurface),
-    arcadeAdoption: pct(totalArcade, totalDS || 1),
+    arcadeAdoption: pct(totalArcade3, totalDS || 1),
+    arcade2Share: pct(totalArcade2, totalDS || 1),
+    offDls: pct(totalDS - totalDls, totalDS || 1),
     detachRate: pct(totalDetached, totalComponentSurface || 1),
     totalDS,
-    totalArcade,
+    totalArcade: totalArcade3,
     totalDetached,
     totalComponentSurface,
   };

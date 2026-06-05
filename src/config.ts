@@ -19,8 +19,12 @@ export function loadConfig(overrides: Partial<Config> = {}): Config {
     figmaAccessToken,
     figmaTeamId,
     figmaDsTeamId: figmaDsTeamId!,
+    // DLS Components — oldest legacy library
     dlsLibraryKey: overrides.dlsLibraryKey ?? process.env.DLS_LIBRARY_KEY ?? 'rNeWrFnPT8J903T2jon2oG',
+    // Arcade 0.2 — current official library, being deprecated
     arcadeLibraryKey: overrides.arcadeLibraryKey ?? process.env.ARCADE_LIBRARY_KEY ?? 'loThitjZGdpisyETz5avvz',
+    // Arcade 0.3 — new source of truth, actively finalising
+    arcade3LibraryKey: overrides.arcade3LibraryKey ?? process.env.ARCADE3_LIBRARY_KEY ?? 'a2uKnm88LxRXEWAL1kOqeQ',
     hotFileCount: overrides.hotFileCount ?? parseInt(process.env.HOT_FILE_COUNT ?? '15', 10),
     hotFileWindowDays: overrides.hotFileWindowDays ?? parseInt(process.env.HOT_FILE_WINDOW_DAYS ?? '60', 10),
   };

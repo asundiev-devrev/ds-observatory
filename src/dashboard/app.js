@@ -202,7 +202,9 @@
   function computeMetrics(analytics, audit) {
     var files = audit && audit.files ? audit.files : [];
     var totalDS = 0;
-    var totalArcade = 0;
+    var totalArcade3 = 0;
+    var totalArcade2 = 0;
+    var totalDls = 0;
     var totalDetached = 0;
     var totalComponentSurface = 0;
     var totalNodes = 0;
@@ -210,15 +212,21 @@
     files.forEach(function (f) {
       var b = f.breakdown;
       var suspected = suspectedCount(f);
-      totalDS += b.dsArcade + b.dsDls + b.dsOther;
-      totalArcade += b.dsArcade;
+      var arcade3 = b.dsArcade3 || 0;  // older snapshots predate this field
+      totalDS += arcade3 + b.dsArcade + b.dsDls + b.dsOther;
+      totalArcade3 += arcade3;
+      totalArcade2 += b.dsArcade;
+      totalDls += b.dsDls;
       totalDetached += b.detached + suspected;
       totalComponentSurface += f.componentSurface + suspected;
       totalNodes += f.totalNodes;
     });
 
     var dsCoverage = pct(totalDS, totalComponentSurface);
-    var arcadeAdoption = pct(totalArcade, totalDS || 1);
+    // Headline adoption = Arcade 0.3 share (the new source of truth)
+    var arcadeAdoption = pct(totalArcade3, totalDS || 1);
+    var arcade2Share = pct(totalArcade2, totalDS || 1);
+    var offDls = pct(totalDS - totalDls, totalDS || 1);
     var detachRate = pct(totalDetached, totalComponentSurface || 1);
 
     var healthScore = Math.round(0.4 * dsCoverage + 0.35 * arcadeAdoption + 0.25 * (100 - detachRate));
@@ -226,10 +234,14 @@
     return {
       dsCoverage: dsCoverage,
       arcadeAdoption: arcadeAdoption,
+      arcade2Share: arcade2Share,
+      offDls: offDls,
       detachRate: detachRate,
       healthScore: healthScore,
       totalDS: totalDS,
-      totalArcade: totalArcade,
+      totalArcade: totalArcade3,
+      totalArcade2: totalArcade2,
+      totalDls: totalDls,
       totalDetached: totalDetached,
       totalComponentSurface: totalComponentSurface,
       totalNodes: totalNodes,
@@ -240,9 +252,10 @@
     var b = file.breakdown;
     var suspected = suspectedCount(file);
     var surface = (file.componentSurface + suspected) || 1;
-    var dsTotal = b.dsArcade + b.dsDls + b.dsOther;
+    var arcade3 = b.dsArcade3 || 0;
+    var dsTotal = arcade3 + b.dsArcade + b.dsDls + b.dsOther;
     var dsCoverage = pct(dsTotal, surface);
-    var arcadeAdoption = pct(b.dsArcade, dsTotal || 1);
+    var arcadeAdoption = pct(arcade3, dsTotal || 1);  // Arcade 0.3 share
     var detachRate = pct(b.detached + suspected, surface);
     var healthScore = Math.round(0.4 * dsCoverage + 0.35 * arcadeAdoption + 0.25 * (100 - detachRate));
     return {
@@ -264,10 +277,11 @@
     return COLORS.detached;
   }
 
-  // File health card palette (neutral bg — Arcade accents)
+  // File health card palette — 3 DS generations + non-DS states
   var FH_COLORS = {
-    arcade:   'hsl(89, 85%, 46%)',     // hardy-500
-    dls:      'hsl(198, 94%, 57%)',    // shuiguo-500
+    arcade3:  'hsl(89, 85%, 46%)',     // hardy-500   — Arcade 0.3 (new SoT)
+    arcade:   'hsl(48, 100%, 51%)',    // banginapalli-400 — Arcade 0.2 (deprecating)
+    dls:      'hsl(198, 94%, 57%)',    // shuiguo-500 — DLS (legacy)
     other:    'hsl(320, 2%, 64%)',     // husk-600
     detached: 'hsl(13, 90%, 54%)',     // persimmon-500
     scoreHigh: 'hsl(89, 89%, 32%)',    // hardy-600
@@ -341,13 +355,13 @@
       factors.push({ kind: 'positive', label: 'Low detachment', text: '~' + fmtPct(metrics.detachRate) + ' detached — overrides are rare' });
     }
 
-    // Gaps / maturity — Arcade vs DLS split
+    // Migration to Arcade 0.3 (new source of truth)
     if (metrics.arcadeAdoption >= 60) {
-      factors.push({ kind: 'positive', label: 'Mature Arcade uptake', text: fmtPct(metrics.arcadeAdoption) + ' of DS usage is on Arcade' });
+      factors.push({ kind: 'positive', label: 'Strong Arcade 0.3 uptake', text: fmtPct(metrics.arcadeAdoption) + ' of DS usage already on the new source of truth' });
     } else if (metrics.arcadeAdoption < 30) {
-      factors.push({ kind: 'negative', label: 'Gaps in Arcade', text: 'only ' + fmtPct(metrics.arcadeAdoption) + ' of DS usage is Arcade — DLS still dominant' });
+      factors.push({ kind: 'negative', label: 'Early on Arcade 0.3', text: 'only ' + fmtPct(metrics.arcadeAdoption) + ' on 0.3 — ' + fmtPct(metrics.arcade2Share) + ' still on 0.2, ' + fmtPct(100 - metrics.offDls) + ' on legacy DLS' });
     } else {
-      factors.push({ kind: 'neutral', label: 'Mixed maturity', text: 'Arcade at ' + fmtPct(metrics.arcadeAdoption) + ' — some teams bought in, others not' });
+      factors.push({ kind: 'neutral', label: 'Mid-migration to 0.3', text: 'Arcade 0.3 at ' + fmtPct(metrics.arcadeAdoption) + ', 0.2 still ' + fmtPct(metrics.arcade2Share) });
     }
 
     var context = el('div', { className: 'health-score-context' });
@@ -371,7 +385,8 @@
     // --- Secondary cards ---
     var secondaryItems = [
       { label: 'DS coverage', value: fmtPct(metrics.dsCoverage), prev: prevMetrics ? prevMetrics.dsCoverage : null, tint: 'tint-shuiguo' },
-      { label: 'Arcade adoption', value: fmtPct(metrics.arcadeAdoption), prev: prevMetrics ? prevMetrics.arcadeAdoption : null, tint: 'tint-hardy' },
+      { label: 'Arcade 0.3 adoption', value: fmtPct(metrics.arcadeAdoption), prev: prevMetrics ? prevMetrics.arcadeAdoption : null, tint: 'tint-hardy' },
+      { label: 'Off legacy DLS', value: fmtPct(metrics.offDls), prev: prevMetrics ? prevMetrics.offDls : null, tint: 'tint-hardy' },
       { label: 'Detachment rate', value: '~' + fmtPct(metrics.detachRate), prev: prevMetrics ? prevMetrics.detachRate : null, invert: true, tint: 'tint-persimmon' },
     ];
 
@@ -411,7 +426,7 @@
 
     // Legend
     var legend = el('div', { className: 'cg-files-legend' });
-    [{ label: 'Arcade', color: FH_COLORS.arcade }, { label: 'DLS', color: FH_COLORS.dls }, { label: 'Other', color: FH_COLORS.other }, { label: 'Detached', color: FH_COLORS.detached }].forEach(function (item) {
+    [{ label: 'Arcade 0.3', color: FH_COLORS.arcade3 }, { label: 'Arcade 0.2', color: FH_COLORS.arcade }, { label: 'DLS', color: FH_COLORS.dls }, { label: 'Other', color: FH_COLORS.other }, { label: 'Detached', color: FH_COLORS.detached }].forEach(function (item) {
       legend.appendChild(el('span', { className: 'cg-files-legend-item' }, [
         el('span', { className: 'cg-files-legend-dot', style: 'background:' + item.color }),
         el('span', { textContent: item.label }),
@@ -447,6 +462,7 @@
         var b = file.breakdown;
         var suspected = suspectedCount(file);
         var surface = (file.componentSurface + suspected) || 1;
+        bar.appendChild(el('div', { style: 'width:' + pct(b.dsArcade3 || 0, surface) + '%;background:' + FH_COLORS.arcade3 }));
         bar.appendChild(el('div', { style: 'width:' + pct(b.dsArcade, surface) + '%;background:' + FH_COLORS.arcade }));
         bar.appendChild(el('div', { style: 'width:' + pct(b.dsDls, surface) + '%;background:' + FH_COLORS.dls }));
         bar.appendChild(el('div', { style: 'width:' + pct(b.dsOther, surface) + '%;background:' + FH_COLORS.other }));
@@ -816,7 +832,7 @@
     };
     var series = [
       { key: 'dsCoverage', label: 'DS coverage', color: TREND_COLORS.coverage },
-      { key: 'arcadeAdoption', label: 'Arcade adoption', color: TREND_COLORS.adoption },
+      { key: 'arcadeAdoption', label: 'Arcade 0.3 adoption', color: TREND_COLORS.adoption },
       { key: 'detachRate', label: 'Detachment rate', color: TREND_COLORS.detachment },
     ];
 

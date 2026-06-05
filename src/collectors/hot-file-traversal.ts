@@ -12,6 +12,7 @@ import type {
 interface LibraryKeys {
   dls: string;
   arcade: string;
+  arcade3: string;
 }
 
 interface TraversalResult {
@@ -32,6 +33,7 @@ export function traverseFileTree(
   componentNameToFileKey?: Map<string, string>,
 ): TraversalResult {
   const breakdown: NodeBreakdown = {
+    dsArcade3: 0,
     dsArcade: 0,
     dsDls: 0,
     dsOther: 0,
@@ -96,6 +98,7 @@ export function traverseFileTree(
 
   const totalNodes = Object.values(breakdown).reduce((sum, v) => sum + v, 0);
   const componentSurface =
+    breakdown.dsArcade3 +
     breakdown.dsArcade +
     breakdown.dsDls +
     breakdown.dsOther +
