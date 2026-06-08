@@ -291,22 +291,20 @@ export async function collectCommand(options: CollectOptions): Promise<void> {
     `  Arcade: ${analyticsData.arcade.totalInsertions} insertions, ${analyticsData.arcade.components.length} components`,
   );
 
-  // Summary
-  const totalSurface = fileEntries.reduce((s, f) => s + f.componentSurface, 0);
-  const totalDs = fileEntries.reduce(
-    (s, f) => s + f.breakdown.dsArcade3 + f.breakdown.dsArcade + f.breakdown.dsDls + f.breakdown.dsOther,
-    0,
-  );
+  // Summary — tracked DS only (dsOther / raw / suspected excluded as noise)
   const totalArcade3 = fileEntries.reduce((s, f) => s + f.breakdown.dsArcade3, 0);
   const totalArcade2 = fileEntries.reduce((s, f) => s + f.breakdown.dsArcade, 0);
   const totalDls = fileEntries.reduce((s, f) => s + f.breakdown.dsDls, 0);
   const totalDetached = fileEntries.reduce((s, f) => s + f.breakdown.detached, 0);
+  const totalLocal = fileEntries.reduce((s, f) => s + f.breakdown.localComponent, 0);
+  const totalDs = totalArcade3 + totalArcade2 + totalDls;
+  const totalSurface = totalDs + totalDetached + totalLocal;
 
   console.log('\n--- Summary ---');
   console.log(`DS Coverage: ${totalSurface > 0 ? ((totalDs / totalSurface) * 100).toFixed(1) : 0}%`);
   console.log(`Arcade 0.3 adoption: ${totalDs > 0 ? ((totalArcade3 / totalDs) * 100).toFixed(1) : 0}%`);
   console.log(`Arcade 0.2 share: ${totalDs > 0 ? ((totalArcade2 / totalDs) * 100).toFixed(1) : 0}%`);
   console.log(`Off DLS: ${totalDs > 0 ? (((totalDs - totalDls) / totalDs) * 100).toFixed(1) : 0}%`);
-  console.log(`Detachment Rate: ${(totalDetached + totalDs) > 0 ? ((totalDetached / (totalDetached + totalDs)) * 100).toFixed(1) : 0}%`);
+  console.log(`Detachment Rate: ${totalSurface > 0 ? ((totalDetached / totalSurface) * 100).toFixed(1) : 0}%`);
   console.log('\nData written to ./data/');
 }

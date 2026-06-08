@@ -211,14 +211,17 @@
 
     files.forEach(function (f) {
       var b = f.breakdown;
-      var suspected = suspectedCount(f);
       var arcade3 = b.dsArcade3 || 0;  // older snapshots predate this field
-      totalDS += arcade3 + b.dsArcade + b.dsDls + b.dsOther;
+      // Tracked DS = the three real DS-UI generations only. dsOther (icons,
+      // device frames, other-team libs), raw, and suspected detachments are
+      // measurement noise and excluded from every metric.
+      var tracked = arcade3 + b.dsArcade + b.dsDls;
+      totalDS += tracked;
       totalArcade3 += arcade3;
       totalArcade2 += b.dsArcade;
       totalDls += b.dsDls;
-      totalDetached += b.detached + suspected;
-      totalComponentSurface += f.componentSurface + suspected;
+      totalDetached += b.detached;
+      totalComponentSurface += tracked + b.detached + b.localComponent;
       totalNodes += f.totalNodes;
     });
 
@@ -250,13 +253,12 @@
 
   function computeFileHealth(file) {
     var b = file.breakdown;
-    var suspected = suspectedCount(file);
-    var surface = (file.componentSurface + suspected) || 1;
     var arcade3 = b.dsArcade3 || 0;
-    var dsTotal = arcade3 + b.dsArcade + b.dsDls + b.dsOther;
+    var dsTotal = arcade3 + b.dsArcade + b.dsDls;  // tracked DS only
+    var surface = (dsTotal + b.detached + b.localComponent) || 1;
     var dsCoverage = pct(dsTotal, surface);
     var arcadeAdoption = pct(arcade3, dsTotal || 1);  // Arcade 0.3 share
-    var detachRate = pct(b.detached + suspected, surface);
+    var detachRate = pct(b.detached, surface);
     var healthScore = Math.round(0.4 * dsCoverage + 0.35 * arcadeAdoption + 0.25 * (100 - detachRate));
     return {
       fileKey: file.fileKey,
@@ -426,7 +428,7 @@
 
     // Legend
     var legend = el('div', { className: 'cg-files-legend' });
-    [{ label: 'Arcade 0.3', color: FH_COLORS.arcade3 }, { label: 'Arcade 0.2', color: FH_COLORS.arcade }, { label: 'DLS', color: FH_COLORS.dls }, { label: 'Other', color: FH_COLORS.other }, { label: 'Detached', color: FH_COLORS.detached }].forEach(function (item) {
+    [{ label: 'Arcade 0.3', color: FH_COLORS.arcade3 }, { label: 'Arcade 0.2', color: FH_COLORS.arcade }, { label: 'DLS', color: FH_COLORS.dls }, { label: 'Detached', color: FH_COLORS.detached }].forEach(function (item) {
       legend.appendChild(el('span', { className: 'cg-files-legend-item' }, [
         el('span', { className: 'cg-files-legend-dot', style: 'background:' + item.color }),
         el('span', { textContent: item.label }),
@@ -456,17 +458,16 @@
     fileScores.forEach(function (fs) {
       var file = files.find(function (f) { return f.fileKey === fs.fileKey; });
 
-      // Stacked bar (palette-matched to shuiguo bg)
+      // Stacked bar — tracked DS generations + detached only (dsOther/suspected excluded)
       var bar = el('div', { className: 'file-row-bar' });
       if (file) {
         var b = file.breakdown;
-        var suspected = suspectedCount(file);
-        var surface = (file.componentSurface + suspected) || 1;
-        bar.appendChild(el('div', { style: 'width:' + pct(b.dsArcade3 || 0, surface) + '%;background:' + FH_COLORS.arcade3 }));
+        var arcade3 = b.dsArcade3 || 0;
+        var surface = (arcade3 + b.dsArcade + b.dsDls + b.detached + b.localComponent) || 1;
+        bar.appendChild(el('div', { style: 'width:' + pct(arcade3, surface) + '%;background:' + FH_COLORS.arcade3 }));
         bar.appendChild(el('div', { style: 'width:' + pct(b.dsArcade, surface) + '%;background:' + FH_COLORS.arcade }));
         bar.appendChild(el('div', { style: 'width:' + pct(b.dsDls, surface) + '%;background:' + FH_COLORS.dls }));
-        bar.appendChild(el('div', { style: 'width:' + pct(b.dsOther, surface) + '%;background:' + FH_COLORS.other }));
-        bar.appendChild(el('div', { style: 'width:' + pct(b.detached + suspected, surface) + '%;background:' + FH_COLORS.detached }));
+        bar.appendChild(el('div', { style: 'width:' + pct(b.detached, surface) + '%;background:' + FH_COLORS.detached }));
       }
 
       // Trend indicator

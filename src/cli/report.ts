@@ -33,15 +33,17 @@ function computeSnapshotMetrics(audit: HotFileAuditData): SnapshotMetric | null 
 
   files.forEach((f: HotFileEntry) => {
     const b = f.breakdown;
-    const suspected = (f.suspectedDetachments ?? []).length;
     // Older snapshots predate dsArcade3 — coalesce missing field to 0.
     const arcade3 = b.dsArcade3 ?? 0;
-    totalDS += arcade3 + b.dsArcade + b.dsDls + b.dsOther;
+    // Tracked DS only: dsOther (icons/device frames/other-team libs), raw,
+    // and suspected detachments are noise and excluded from every metric.
+    const tracked = arcade3 + b.dsArcade + b.dsDls;
+    totalDS += tracked;
     totalArcade3 += arcade3;
     totalArcade2 += b.dsArcade;
     totalDls += b.dsDls;
-    totalDetached += b.detached + suspected;
-    totalComponentSurface += f.componentSurface + suspected;
+    totalDetached += b.detached;
+    totalComponentSurface += tracked + b.detached + b.localComponent;
   });
 
   if (totalComponentSurface < 100) return null;
