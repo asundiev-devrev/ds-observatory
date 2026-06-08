@@ -148,10 +148,11 @@
       <section class="panel hidden" role="tabpanel" id="panel-inventory" aria-labelledby="tab-inventory" hidden>
         <div class="filter-bar" id="filter-bar" role="toolbar" aria-label="Filter components">
           <button class="pill active" data-filter="all">All</button>
+          <button class="pill" data-filter="arcade3">Arcade 0.3</button>
+          <button class="pill" data-filter="arcade">Arcade 0.2</button>
           <button class="pill" data-filter="dls">DLS</button>
-          <button class="pill" data-filter="arcade">Arcade</button>
           <button class="pill" data-filter="both">Overlap</button>
-          <button class="pill" data-filter="friction">Friction</button>
+          <button class="pill" data-filter="friction">Not on 0.3</button>
         </div>
         <div class="card table-card">
           <div class="table-scroll">
@@ -178,21 +179,23 @@
 
       <section class="panel hidden" role="tabpanel" id="panel-migration" aria-labelledby="tab-migration" hidden>
         <div class="card chart-card">
-          <h2 class="card-title">Arcade adoption over time</h2>
+          <h2 class="card-title">Arcade 0.3 adoption over time</h2>
           <div class="chart-container">
             <canvas id="migration-chart" width="800" height="240"></canvas>
           </div>
         </div>
         <div class="card">
           <h2 class="card-title">Component migration progress</h2>
+          <p class="card-desc">Each bar splits a component's instances across generations — DLS, Arcade 0.2, Arcade 0.3. Sorted by furthest from 0.3.</p>
           <div class="table-scroll">
             <table class="data-table" id="migration-table">
               <thead>
                 <tr>
                   <th>Component</th>
-                  <th>DLS insertions</th>
-                  <th>Arcade insertions</th>
-                  <th>Adoption</th>
+                  <th class="num">DLS</th>
+                  <th class="num">Arcade 0.2</th>
+                  <th class="num">Arcade 0.3</th>
+                  <th>Generation split</th>
                 </tr>
               </thead>
               <tbody id="migration-body"></tbody>
@@ -201,13 +204,13 @@
         </div>
         <div class="migration-cols">
           <div class="card">
-            <h2 class="card-title">DLS-only components</h2>
-            <p class="card-desc">Candidates for Arcade theme creation</p>
+            <h2 class="card-title">Missing from Arcade 0.3</h2>
+            <p class="card-desc">Used components with no Arcade 0.3 variant yet — build targets</p>
             <ul class="component-list" id="dls-only-list"></ul>
           </div>
           <div class="card">
-            <h2 class="card-title">Per-file DLS dependency</h2>
-            <p class="card-desc">Sorted by highest DLS ratio</p>
+            <h2 class="card-title">Per-file legacy dependency</h2>
+            <p class="card-desc">Sorted by lowest Arcade 0.3 share</p>
             <div id="dls-ratio-bars"></div>
           </div>
         </div>

@@ -38,14 +38,17 @@ export interface FileBreakdownEntry {
   fileKey: string;
   fileName: string;
   dlsCount: number;
-  arcadeCount: number;
+  arcadeCount: number;    // Arcade 0.2
+  arcade3Count: number;   // Arcade 0.3 (new source of truth)
+  /** Arcade 0.3 share of (DLS + 0.2 + 0.3) — migration progress toward the SoT */
   arcadeRatio: number;
 }
 
 export interface LibraryAnalyticsData {
   collectedAt: string;
   dls: LibraryData;
-  arcade: LibraryData;
+  arcade: LibraryData;    // Arcade 0.2
+  arcade3: LibraryData;   // Arcade 0.3
   fileBreakdown: FileBreakdownEntry[];
 }
 

@@ -8,8 +8,9 @@
   // ---- Constants ----
   // Arcade fruit-named palette (from devrev-web arcade-tokens.css)
   var COLORS = {
-    arcade:   'hsl(89, 85%, 46%)',      // hardy-500
-    dls:      'hsl(198, 94%, 57%)',     // shuiguo-500
+    arcade3:  'hsl(89, 85%, 46%)',      // hardy-500 — Arcade 0.3 (new SoT)
+    arcade:   'hsl(48, 100%, 51%)',     // banginapalli-400 — Arcade 0.2 (deprecating)
+    dls:      'hsl(198, 94%, 57%)',     // shuiguo-500 — DLS (legacy)
     detached: 'hsl(13, 90%, 54%)',      // persimmon-500
     local:    'hsl(259, 94%, 44%)',     // jabuticaba-400
     raw:      'hsl(0, 0%, 81%)',        // husk-500
@@ -953,21 +954,25 @@
 
     addComps(analytics.dls, 'dls');
     addComps(analytics.arcade, 'arcade');
+    addComps(analytics.arcade3, 'arcade3');
 
     return Object.keys(map).map(function (k) { return map[k]; });
+  }
+
+  function arcade3Ins(item) {
+    var n = 0;
+    item.variants.forEach(function (v) { if (v.library === 'arcade3') n += v.insertions; });
+    return n;
   }
 
   function filterInventory(items, filter) {
     if (filter === 'all') return items;
     if (filter === 'both') return items.filter(function (i) { return i.libraries.length > 1; });
+    // Friction = meaningful usage but not yet (mostly) on Arcade 0.3
     if (filter === 'friction') return items.filter(function (i) {
-      if (i.libraries.indexOf('arcade') < 0 && i.insertions > 5) return true;
-      if (i.libraries.length > 1) {
-        var arcIns = 0;
-        i.variants.forEach(function (v) { if (v.library === 'arcade') arcIns += v.insertions; });
-        if (arcIns / i.insertions < 0.3) return true;
-      }
-      return false;
+      if (i.insertions <= 5) return false;
+      if (i.libraries.indexOf('arcade3') < 0) return true;            // no 0.3 variant at all
+      return arcade3Ins(i) / i.insertions < 0.3;                       // 0.3 exists but barely used
     });
     return items.filter(function (i) { return i.libraries.indexOf(filter) >= 0 && i.libraries.length === 1; });
   }
@@ -1003,22 +1008,25 @@
     if (activeHeader) activeHeader.className = 'sort-icon ' + state.inventorySort.dir;
 
     sorted.forEach(function (item) {
-      var libBadge = item.libraries.length > 1
-        ? '<span class="badge both">Overlap</span>'
-        : item.libraries[0] === 'arcade'
-          ? '<span class="badge arcade">Arcade</span>'
+      // Library badge — show the newest generation the component appears in
+      var libBadge = item.libraries.indexOf('arcade3') >= 0
+        ? '<span class="badge arcade3">Arcade 0.3</span>'
+        : item.libraries.indexOf('arcade') >= 0
+          ? '<span class="badge arcade">Arcade 0.2</span>'
           : '<span class="badge dls">DLS</span>';
+      if (item.libraries.length > 1) {
+        libBadge += '<span class="badge both" style="margin-left:4px">+' + (item.libraries.length - 1) + '</span>';
+      }
 
-      // Friction hotspot indicator
+      // Friction = real usage but not yet on Arcade 0.3 (the target SoT)
       var frictionBadge = '';
-      var arcadeInsertions = 0;
-      item.variants.forEach(function (v) { if (v.library === 'arcade') arcadeInsertions += v.insertions; });
-      var arcadeRatio = item.insertions > 0 ? arcadeInsertions / item.insertions : 0;
+      var a3 = arcade3Ins(item);
+      var a3Ratio = item.insertions > 0 ? a3 / item.insertions : 0;
 
-      if (item.libraries.indexOf('arcade') < 0 && item.insertions > 5) {
-        frictionBadge = '<span class="friction-badge friction-high" data-tip="No Arcade equivalent exists.\n' + fmtNum(item.insertions) + ' DLS insertions across ' + item.files.length + ' files need migration.">DLS only</span>';
-      } else if (item.libraries.length > 1 && arcadeRatio < 0.3) {
-        frictionBadge = '<span class="friction-badge friction-medium" data-tip="Arcade variant exists but accounts for only ' + Math.round(arcadeRatio * 100) + '% of usage.\n' + fmtNum(arcadeInsertions) + ' Arcade vs ' + fmtNum(item.insertions - arcadeInsertions) + ' DLS insertions.">' + Math.round(arcadeRatio * 100) + '% Arcade</span>';
+      if (item.libraries.indexOf('arcade3') < 0 && item.insertions > 5) {
+        frictionBadge = '<span class="friction-badge friction-high" data-tip="No Arcade 0.3 equivalent yet.\n' + fmtNum(item.insertions) + ' insertions on older generations across ' + item.files.length + ' files.">Not on 0.3</span>';
+      } else if (item.libraries.indexOf('arcade3') >= 0 && a3Ratio < 0.3) {
+        frictionBadge = '<span class="friction-badge friction-medium" data-tip="Arcade 0.3 variant exists but is only ' + Math.round(a3Ratio * 100) + '% of usage.\n' + fmtNum(a3) + ' on 0.3 vs ' + fmtNum(item.insertions - a3) + ' on older generations.">' + Math.round(a3Ratio * 100) + '% on 0.3</span>';
       }
 
       var tr = el('tr', {
@@ -1054,9 +1062,11 @@
         td.appendChild(variantHeader);
 
         variantsSorted.forEach(function (v) {
-          var badge = v.library === 'arcade'
-            ? '<span class="badge arcade" style="font-size:10px;padding:1px 5px;margin-left:6px">Arcade</span>'
-            : '<span class="badge dls" style="font-size:10px;padding:1px 5px;margin-left:6px">DLS</span>';
+          var badge = v.library === 'arcade3'
+            ? '<span class="badge arcade3" style="font-size:10px;padding:1px 5px;margin-left:6px">Arcade 0.3</span>'
+            : v.library === 'arcade'
+              ? '<span class="badge arcade" style="font-size:10px;padding:1px 5px;margin-left:6px">Arcade 0.2</span>'
+              : '<span class="badge dls" style="font-size:10px;padding:1px 5px;margin-left:6px">DLS</span>';
           var row = el('div', {
             style: 'display:flex;justify-content:space-between;align-items:center;padding:2px 0;font-size:12px;color:hsl(var(--text-color-secondary))',
           });
@@ -1333,8 +1343,8 @@
     var ctx = canvas.getContext('2d');
 
     var weeks = [];
-    if (analytics && analytics.arcade && analytics.arcade.weeklyTrend) {
-      weeks = analytics.arcade.weeklyTrend.slice();
+    if (analytics && analytics.arcade3 && analytics.arcade3.weeklyTrend) {
+      weeks = analytics.arcade3.weeklyTrend.slice();
     }
 
     if (weeks.length < 2) {
@@ -1430,47 +1440,50 @@
 
     if (!analytics) return;
 
-    // Build a map of components by name across both libraries
+    // Build a map of components by name across all three generations
     var map = {};
     function index(lib, label) {
       if (!lib || !lib.components) return;
       lib.components.forEach(function (c) {
         var key = c.name.toLowerCase();
-        if (!map[key]) map[key] = { name: c.name, dls: 0, arcade: 0 };
+        if (!map[key]) map[key] = { name: c.name, dls: 0, arcade: 0, arcade3: 0 };
         map[key][label] += c.insertions;
       });
     }
     index(analytics.dls, 'dls');
     index(analytics.arcade, 'arcade');
+    index(analytics.arcade3, 'arcade3');
 
-    // Only show components that exist in both
-    var both = Object.keys(map)
+    // Show components with meaningful usage on a legacy generation (DLS or 0.2),
+    // sorted by furthest from 0.3 (lowest 0.3 share first = highest priority)
+    var rows = Object.keys(map)
       .map(function (k) { return map[k]; })
-      .filter(function (c) { return c.dls > 0 && c.arcade > 0; })
+      .filter(function (c) { return (c.dls + c.arcade) > 0; })
       .sort(function (a, b) {
-        var aR = a.arcade / (a.dls + a.arcade);
-        var bR = b.arcade / (b.dls + b.arcade);
-        return bR - aR;
+        var aR = a.arcade3 / (a.dls + a.arcade + a.arcade3);
+        var bR = b.arcade3 / (b.dls + b.arcade + b.arcade3);
+        return aR - bR;
       });
 
-    if (both.length === 0) {
+    if (rows.length === 0) {
       var tr = el('tr');
-      tr.innerHTML = '<td colspan="4" style="text-align:center;padding:24px;color:hsl(320, 2%, 64%);">No overlapping components detected yet</td>';
+      tr.innerHTML = '<td colspan="5" style="text-align:center;padding:24px;color:hsl(320, 2%, 64%);">Everything tracked is already on Arcade 0.3</td>';
       tbody.appendChild(tr);
       return;
     }
 
-    both.forEach(function (c) {
-      var total = c.dls + c.arcade;
-      var arcadePct = pct(c.arcade, total);
+    rows.forEach(function (c) {
+      var total = c.dls + c.arcade + c.arcade3;
       var tr = el('tr');
       tr.innerHTML =
         '<td>' + escapeHtml(c.name) + '</td>' +
-        '<td>' + fmtNum(c.dls) + '</td>' +
-        '<td>' + fmtNum(c.arcade) + '</td>' +
-        '<td><div class="progress-bar-wrap">' +
+        '<td class="num">' + fmtNum(c.dls) + '</td>' +
+        '<td class="num">' + fmtNum(c.arcade) + '</td>' +
+        '<td class="num">' + fmtNum(c.arcade3) + '</td>' +
+        '<td><div class="progress-bar-wrap" title="' + Math.round(pct(c.arcade3, total)) + '% on Arcade 0.3">' +
           '<div style="width:' + pct(c.dls, total) + '%;background:' + COLORS.dls + '"></div>' +
-          '<div style="width:' + arcadePct + '%;background:' + COLORS.arcade + '"></div>' +
+          '<div style="width:' + pct(c.arcade, total) + '%;background:' + COLORS.arcade + '"></div>' +
+          '<div style="width:' + pct(c.arcade3, total) + '%;background:' + COLORS.arcade3 + '"></div>' +
         '</div></td>';
       tbody.appendChild(tr);
     });
@@ -1482,37 +1495,44 @@
 
     if (!analytics) return;
 
-    var arcadeNames = {};
-    if (analytics.arcade && analytics.arcade.components) {
-      analytics.arcade.components.forEach(function (c) {
-        arcadeNames[c.name.toLowerCase()] = true;
+    // Components present on Arcade 0.3 already
+    var arcade3Names = {};
+    if (analytics.arcade3 && analytics.arcade3.components) {
+      analytics.arcade3.components.forEach(function (c) {
+        arcade3Names[c.name.toLowerCase()] = true;
       });
     }
 
-    var dlsOnly = [];
-    if (analytics.dls && analytics.dls.components) {
-      analytics.dls.components.forEach(function (c) {
-        if (!arcadeNames[c.name.toLowerCase()]) {
-          dlsOnly.push(c);
-        }
+    // Aggregate legacy usage (DLS + 0.2) for names NOT yet on 0.3
+    var missing = {};
+    function addLegacy(lib) {
+      if (!lib || !lib.components) return;
+      lib.components.forEach(function (c) {
+        var key = c.name.toLowerCase();
+        if (arcade3Names[key]) return;
+        if (!missing[key]) missing[key] = { name: c.name, insertions: 0 };
+        missing[key].insertions += c.insertions;
       });
     }
+    addLegacy(analytics.dls);
+    addLegacy(analytics.arcade);
 
-    dlsOnly.sort(function (a, b) { return b.insertions - a.insertions; });
+    var list2 = Object.keys(missing).map(function (k) { return missing[k]; })
+      .sort(function (a, b) { return b.insertions - a.insertions; });
 
-    if (dlsOnly.length === 0) {
-      list.appendChild(el('li', { textContent: 'All DLS components have Arcade equivalents', style: 'color:hsl(320, 2%, 64%);border:none;' }));
+    if (list2.length === 0) {
+      list.appendChild(el('li', { textContent: 'Every used component has an Arcade 0.3 variant', style: 'color:hsl(320, 2%, 64%);border:none;' }));
       return;
     }
 
-    dlsOnly.slice(0, 25).forEach(function (c) {
+    list2.slice(0, 25).forEach(function (c) {
       list.appendChild(el('li', {}, [
         el('span', { textContent: c.name }),
         el('span', { className: 'count', textContent: fmtNum(c.insertions) + ' ins.' }),
       ]));
     });
-    if (dlsOnly.length > 25) {
-      list.appendChild(el('li', { style: 'color:hsl(320, 2%, 64%);border:none;', textContent: '+ ' + (dlsOnly.length - 25) + ' more...' }));
+    if (list2.length > 25) {
+      list.appendChild(el('li', { style: 'color:hsl(320, 2%, 64%);border:none;', textContent: '+ ' + (list2.length - 25) + ' more...' }));
     }
   }
 
@@ -1526,20 +1546,26 @@
       return;
     }
 
-    // Sort by highest DLS ratio (lowest arcadeRatio)
+    // arcadeRatio = Arcade 0.3 share of tracked DS. Sort lowest-0.3 first (most legacy).
     var sorted = breakdown.slice().sort(function (a, b) { return a.arcadeRatio - b.arcadeRatio; });
 
     sorted.forEach(function (file) {
-      var dlsPct = ((1 - file.arcadeRatio) * 100);
-      var arcPct = (file.arcadeRatio * 100);
+      var total = (file.dlsCount + file.arcadeCount + (file.arcade3Count || 0)) || 1;
+      var dlsPct = pct(file.dlsCount, total);
+      var a2Pct = pct(file.arcadeCount, total);
+      var a3Pct = pct(file.arcade3Count || 0, total);
 
-      container.appendChild(el('div', { className: 'dls-ratio-row' }, [
+      container.appendChild(el('div', {
+        className: 'dls-ratio-row',
+        dataset: { tip: file.fileName + '\nArcade 0.3 ' + Math.round(a3Pct) + '% · 0.2 ' + Math.round(a2Pct) + '% · DLS ' + Math.round(dlsPct) + '%' },
+      }, [
         el('div', { className: 'dls-ratio-label', textContent: file.fileName, title: file.fileName }),
         el('div', { className: 'dls-ratio-track' }, [
           el('div', { style: 'width:' + dlsPct + '%;background:' + COLORS.dls }),
-          el('div', { style: 'width:' + arcPct + '%;background:' + COLORS.arcade }),
+          el('div', { style: 'width:' + a2Pct + '%;background:' + COLORS.arcade }),
+          el('div', { style: 'width:' + a3Pct + '%;background:' + COLORS.arcade3 }),
         ]),
-        el('div', { className: 'dls-ratio-pct', textContent: Math.round(dlsPct) + '%' }),
+        el('div', { className: 'dls-ratio-pct', textContent: Math.round(a3Pct) + '%' }),
       ]));
     });
   }

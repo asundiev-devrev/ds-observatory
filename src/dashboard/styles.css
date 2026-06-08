@@ -962,9 +962,10 @@ ul { list-style: none; }
   border-radius: 20px;
   white-space: nowrap;
 }
-.badge.arcade,
-.badge.dls,
 .badge.both    { background: hsl(var(--husk-300)); color: hsl(var(--text-color-secondary)); }
+.badge.arcade3 { background: hsla(89, 85%, 46%, 0.15); color: hsl(89, 89%, 22%); }
+.badge.arcade  { background: hsla(48, 100%, 51%, 0.2); color: hsl(55, 100%, 25%); }
+.badge.dls     { background: hsla(198, 94%, 57%, 0.15); color: hsl(197, 91%, 30%); }
 
 /* Friction badges */
 .friction-badge {

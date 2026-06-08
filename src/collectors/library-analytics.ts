@@ -53,33 +53,37 @@ function transformLibraryData(response: FigmaAnalyticsResponse): LibraryData {
 function buildFileBreakdown(
   dlsResponse: FigmaAnalyticsResponse,
   arcadeResponse: FigmaAnalyticsResponse,
+  arcade3Response: FigmaAnalyticsResponse,
 ): FileBreakdownEntry[] {
-  const fileMap = new Map<string, { fileName: string; dlsCount: number; arcadeCount: number }>();
+  type Row = { fileName: string; dlsCount: number; arcadeCount: number; arcade3Count: number };
+  const fileMap = new Map<string, Row>();
+  const blank = (fileName: string): Row => ({ fileName, dlsCount: 0, arcadeCount: 0, arcade3Count: 0 });
 
-  for (const cu of dlsResponse.component_usages) {
+  for (const cu of dlsResponse.component_usages)
     for (const u of cu.usages) {
-      const existing = fileMap.get(u.file_key) ?? { fileName: u.file_name, dlsCount: 0, arcadeCount: 0 };
-      existing.dlsCount += u.insertions;
-      fileMap.set(u.file_key, existing);
+      const r = fileMap.get(u.file_key) ?? blank(u.file_name);
+      r.dlsCount += u.insertions; fileMap.set(u.file_key, r);
     }
-  }
-
-  for (const cu of arcadeResponse.component_usages) {
+  for (const cu of arcadeResponse.component_usages)
     for (const u of cu.usages) {
-      const existing = fileMap.get(u.file_key) ?? { fileName: u.file_name, dlsCount: 0, arcadeCount: 0 };
-      existing.arcadeCount += u.insertions;
-      fileMap.set(u.file_key, existing);
+      const r = fileMap.get(u.file_key) ?? blank(u.file_name);
+      r.arcadeCount += u.insertions; fileMap.set(u.file_key, r);
     }
-  }
+  for (const cu of arcade3Response.component_usages)
+    for (const u of cu.usages) {
+      const r = fileMap.get(u.file_key) ?? blank(u.file_name);
+      r.arcade3Count += u.insertions; fileMap.set(u.file_key, r);
+    }
 
   return Array.from(fileMap.entries()).map(([fileKey, data]) => {
-    const total = data.dlsCount + data.arcadeCount;
+    const total = data.dlsCount + data.arcadeCount + data.arcade3Count;
     return {
       fileKey,
       fileName: data.fileName,
       dlsCount: data.dlsCount,
       arcadeCount: data.arcadeCount,
-      arcadeRatio: total > 0 ? data.arcadeCount / total : 0,
+      arcade3Count: data.arcade3Count,
+      arcadeRatio: total > 0 ? data.arcade3Count / total : 0,
     };
   });
 }
@@ -89,16 +93,18 @@ export async function collectLibraryAnalytics(
   options: CollectOptions,
 ): Promise<LibraryAnalyticsData> {
   try {
-    const [dlsResponse, arcadeResponse] = await Promise.all([
+    const [dlsResponse, arcadeResponse, arcade3Response] = await Promise.all([
       client.get<FigmaAnalyticsResponse>(`/v1/analytics/libraries/${options.dlsLibraryKey}/component/usages`),
       client.get<FigmaAnalyticsResponse>(`/v1/analytics/libraries/${options.arcadeLibraryKey}/component/usages`),
+      client.get<FigmaAnalyticsResponse>(`/v1/analytics/libraries/${options.arcade3LibraryKey}/component/usages`),
     ]);
 
     return {
       collectedAt: new Date().toISOString(),
       dls: transformLibraryData(dlsResponse),
       arcade: transformLibraryData(arcadeResponse),
-      fileBreakdown: buildFileBreakdown(dlsResponse, arcadeResponse),
+      arcade3: transformLibraryData(arcade3Response),
+      fileBreakdown: buildFileBreakdown(dlsResponse, arcadeResponse, arcade3Response),
     };
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);

@@ -11,6 +11,7 @@ import type {
   HotFileAuditData,
   HotFileEntry,
   LibraryAnalyticsData,
+  LibraryData,
   LibraryComponentUsage,
   FileBreakdownEntry,
 } from '../types.js';
@@ -94,7 +95,8 @@ function synthesizeLibraryAnalytics(
   keyToInfo: Map<string, ComponentInfo>,
 ): LibraryAnalyticsData {
   const dlsComponents = new Map<string, LibraryComponentUsage>();
-  const arcadeComponents = new Map<string, LibraryComponentUsage>();
+  const arcadeComponents = new Map<string, LibraryComponentUsage>();   // Arcade 0.2
+  const arcade3Components = new Map<string, LibraryComponentUsage>();   // Arcade 0.3
 
   for (const entry of fileEntries) {
     const fileData = fileResponses.get(entry.fileKey);
@@ -112,14 +114,14 @@ function synthesizeLibraryAnalytics(
       const fileKey = meta.file_key ?? info?.fileKey ?? keyToFileKey.get(meta.key);
       if (!fileKey) continue;
 
-      // Arcade 0.3 + 0.2 both bucket as "arcade" in synthesized analytics for now.
-      // The Coverage tab reads the audit breakdown (which keeps them split);
-      // Inventory/Migration get a proper 3-generation split in a follow-up.
-      const isArcade = fileKey === libraryKeys.arcade || fileKey === libraryKeys.arcade3;
-      const isDls = fileKey === libraryKeys.dls;
-      if (!isArcade && !isDls) continue;
+      // Split all three tracked generations; everything else is noise.
+      const targetMap =
+        fileKey === libraryKeys.arcade3 ? arcade3Components :
+        fileKey === libraryKeys.arcade ? arcadeComponents :
+        fileKey === libraryKeys.dls ? dlsComponents :
+        null;
+      if (!targetMap) continue;
 
-      const targetMap = isArcade ? arcadeComponents : dlsComponents;
       const displayName = info?.displayName ?? meta.name;
 
       const existing = targetMap.get(displayName);
@@ -138,35 +140,38 @@ function synthesizeLibraryAnalytics(
     }
   }
 
-  const dlsList = Array.from(dlsComponents.values()).sort((a, b) => b.insertions - a.insertions);
-  const arcadeList = Array.from(arcadeComponents.values()).sort((a, b) => b.insertions - a.insertions);
+  const toList = (m: Map<string, LibraryComponentUsage>): LibraryComponentUsage[] =>
+    Array.from(m.values()).sort((a, b) => b.insertions - a.insertions);
+  const dlsList = toList(dlsComponents);
+  const arcadeList = toList(arcadeComponents);
+  const arcade3List = toList(arcade3Components);
 
   const fileBreakdown: FileBreakdownEntry[] = fileEntries.map((f) => {
-    const arcadeAll = f.breakdown.dsArcade3 + f.breakdown.dsArcade;
-    const total = f.breakdown.dsDls + arcadeAll;
+    const b = f.breakdown;
+    const total = b.dsDls + b.dsArcade + b.dsArcade3;
     return {
       fileKey: f.fileKey,
       fileName: f.fileName,
-      dlsCount: f.breakdown.dsDls,
-      arcadeCount: arcadeAll,
-      arcadeRatio: total > 0 ? arcadeAll / total : 0,
+      dlsCount: b.dsDls,
+      arcadeCount: b.dsArcade,
+      arcade3Count: b.dsArcade3,
+      // Migration progress = Arcade 0.3 share of tracked DS
+      arcadeRatio: total > 0 ? b.dsArcade3 / total : 0,
     };
+  });
+
+  const libData = (list: LibraryComponentUsage[]): LibraryData => ({
+    totalInsertions: list.reduce((s, c) => s + c.insertions, 0),
+    totalDetachments: 0,
+    components: list,
+    weeklyTrend: [],
   });
 
   return {
     collectedAt: new Date().toISOString(),
-    dls: {
-      totalInsertions: dlsList.reduce((s, c) => s + c.insertions, 0),
-      totalDetachments: 0,
-      components: dlsList,
-      weeklyTrend: [],
-    },
-    arcade: {
-      totalInsertions: arcadeList.reduce((s, c) => s + c.insertions, 0),
-      totalDetachments: 0,
-      components: arcadeList,
-      weeklyTrend: [],
-    },
+    dls: libData(dlsList),
+    arcade: libData(arcadeList),
+    arcade3: libData(arcade3List),
     fileBreakdown,
   };
 }
