@@ -220,6 +220,7 @@ export async function collectCommand(options: CollectOptions): Promise<void> {
     teamId: config.figmaTeamId,
     windowDays: config.hotFileWindowDays,
     maxFiles: config.hotFileCount,
+    excludeFilePatterns: config.excludeFilePatterns,
   });
   console.log(`  Found ${hotFiles.length} active files`);
 

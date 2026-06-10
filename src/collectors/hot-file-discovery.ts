@@ -6,6 +6,8 @@ interface DiscoveryOptions {
   windowDays: number;
   maxFiles: number;
   referenceDate?: Date;
+  /** File-name substrings to skip (DS libraries, asset dumps, docs) — case-insensitive */
+  excludeFilePatterns?: string[];
 }
 
 interface DiscoveredFile {
@@ -34,7 +36,15 @@ export async function discoverHotFiles(
     allFiles.push(...filesResp.files);
   }
 
-  const recentFiles = allFiles.filter((f) => new Date(f.last_modified) >= windowStart);
+  const excludes = (options.excludeFilePatterns ?? []).map(p => p.toLowerCase());
+  const isExcluded = (name: string): boolean => {
+    const lower = name.toLowerCase();
+    return excludes.some(p => lower.includes(p));
+  };
+
+  const recentFiles = allFiles.filter(
+    (f) => new Date(f.last_modified) >= windowStart && !isExcluded(f.name),
+  );
 
   const results: DiscoveredFile[] = [];
   for (const file of recentFiles) {

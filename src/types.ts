@@ -7,6 +7,8 @@ export interface Config {
   dlsLibraryKey: string;
   arcadeLibraryKey: string;
   arcade3LibraryKey: string;
+  /** File-name substrings to skip in hot-file discovery — DS libraries, internal/non-product files that skew stats */
+  excludeFilePatterns: string[];
   hotFileCount: number;
   hotFileWindowDays: number;
 }
