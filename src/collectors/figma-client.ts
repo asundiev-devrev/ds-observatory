@@ -19,17 +19,20 @@ export class FigmaClient {
   }
 
   /**
-   * Fetch a full Figma file. If the file is too large (400), falls back to
-   * per-page fetching via the /nodes endpoint and merges the results.
+   * Fetch a full Figma file. If the single-request endpoint fails for any
+   * reason — HTTP 400 (too large per Figma), body read errors (V8 string
+   * limit on very large files), or connection drops (Figma closing oversize
+   * responses) — falls back to per-page fetching via /nodes and merges
+   * results. Per-page requests return smaller JSON per page and tolerate
+   * individual page failures.
    */
   async getFile(fileKey: string): Promise<FigmaFileResponse> {
     try {
       return await this.get<FigmaFileResponse>(`/v1/files/${fileKey}`);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      if (!msg.includes('400')) throw err;
-
-      console.warn(`    File too large for single request — fetching per-page...`);
+      console.warn(`    Single-request fetch failed (${msg.split('\n')[0].slice(0, 120)})`);
+      console.warn(`    Falling back to per-page fetch...`);
       return this.getFileByPages(fileKey);
     }
   }
@@ -42,25 +45,39 @@ export class FigmaClient {
     const allComponents: Record<string, FigmaComponentMeta> = { ...shell.components };
     const fullPages: FigmaNode[] = [];
 
-    // Step 2: Fetch each page's subtree individually with depth limiting
-    // depth=5 captures most component instances while keeping response sizes manageable
+    // Step 2: Fetch each page's subtree individually with depth limiting.
+    // Try depth=5 first (captures most component instances); if the response
+    // is too large or the connection drops, degrade to shallower depths so
+    // we still capture *some* data from the page instead of nothing.
+    const depthAttempts = ['5', '3', '2'];
     for (const page of pages) {
-      try {
-        const resp = await this.get<NodesResponse>(
-          `/v1/files/${fileKey}/nodes`,
-          { ids: page.id, depth: '5' },
-        );
-
-        const nodeData = resp.nodes[page.id];
-        if (nodeData) {
-          fullPages.push(nodeData.document);
-          Object.assign(allComponents, nodeData.components);
-        } else {
-          fullPages.push(page);
+      let captured = false;
+      let lastErr: unknown;
+      for (const depth of depthAttempts) {
+        try {
+          const resp = await this.get<NodesResponse>(
+            `/v1/files/${fileKey}/nodes`,
+            { ids: page.id, depth },
+          );
+          const nodeData = resp.nodes[page.id];
+          if (nodeData) {
+            fullPages.push(nodeData.document);
+            Object.assign(allComponents, nodeData.components);
+          } else {
+            fullPages.push(page);
+          }
+          if (depth !== '5') {
+            console.warn(`    Page "${page.name}" captured at reduced depth=${depth}`);
+          }
+          captured = true;
+          break;
+        } catch (pageErr) {
+          lastErr = pageErr;
         }
-      } catch (pageErr) {
-        const pageMsg = pageErr instanceof Error ? pageErr.message : String(pageErr);
-        console.warn(`    Page "${page.name}" skipped: ${pageMsg}`);
+      }
+      if (!captured) {
+        const pageMsg = lastErr instanceof Error ? lastErr.message : String(lastErr);
+        console.warn(`    Page "${page.name}" skipped after depth degradation: ${pageMsg}`);
         fullPages.push(page);
       }
     }
