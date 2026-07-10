@@ -55,9 +55,12 @@ interface ComponentInfo {
 async function fetchTeamComponentCatalog(
   client: FigmaClient,
   teamId: string,
-): Promise<{ keyToFileKey: Map<string, string>; keyToInfo: Map<string, ComponentInfo> }> {
+  excludeLibraryKeys: string[] = [],
+): Promise<{ keyToFileKey: Map<string, string>; keyToInfo: Map<string, ComponentInfo>; excludedCount: number }> {
   const keyToFileKey = new Map<string, string>();
   const keyToInfo = new Map<string, ComponentInfo>();
+  const excludeSet = new Set(excludeLibraryKeys);
+  let excludedCount = 0;
   let after: number | undefined;
 
   while (true) {
@@ -70,6 +73,13 @@ async function fetchTeamComponentCatalog(
     );
 
     for (const comp of page.meta.components) {
+      // Drop staging/test libraries entirely so they never count as DS or feed
+      // detachment detection downstream.
+      if (excludeSet.has(comp.file_key)) {
+        excludedCount++;
+        continue;
+      }
+
       keyToFileKey.set(comp.key, comp.file_key);
 
       // Resolve display name: use component set name for variants, own name for standalone
@@ -83,7 +93,7 @@ async function fetchTeamComponentCatalog(
     after = page.meta.cursor.after;
   }
 
-  return { keyToFileKey, keyToInfo };
+  return { keyToFileKey, keyToInfo, excludedCount };
 }
 
 /** Build library analytics from hot-file traversal data when the Enterprise API is unavailable. */
@@ -202,8 +212,13 @@ export async function collectCommand(options: CollectOptions): Promise<void> {
 
   // Phase 0: Fetch team component catalog from DS team (key → file_key + display name)
   console.log(`Fetching component catalog from DS team...`);
-  const { keyToFileKey, keyToInfo } = await fetchTeamComponentCatalog(client, config.figmaDsTeamId);
+  const { keyToFileKey, keyToInfo, excludedCount } = await fetchTeamComponentCatalog(
+    client, config.figmaDsTeamId, config.excludeLibraryKeys,
+  );
   console.log(`  ${keyToFileKey.size} published components indexed`);
+  if (excludedCount > 0) {
+    console.log(`  ${excludedCount} components excluded (${config.excludeLibraryKeys.join(', ')})`);
+  }
 
   // Phase 1: Try Library Analytics (Enterprise-only, may 403)
   console.log('\nCollecting library analytics...');

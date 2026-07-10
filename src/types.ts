@@ -9,6 +9,8 @@ export interface Config {
   arcade3LibraryKey: string;
   /** File-name substrings to skip in hot-file discovery — DS libraries, internal/non-product files that skew stats */
   excludeFilePatterns: string[];
+  /** Library file keys to drop from the DS team catalog — staging/test libraries that must not count as DS or pollute detachment detection */
+  excludeLibraryKeys: string[];
   hotFileCount: number;
   hotFileWindowDays: number;
 }

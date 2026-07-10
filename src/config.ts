@@ -37,6 +37,15 @@ export function loadConfig(overrides: Partial<Config> = {}): Config {
             'Documentation Website',
           ]
     ),
+    // Library files to drop from the DS team catalog entirely. These are staging /
+    // scratch libraries that publish real-looking components but must never count as
+    // DS or feed detachment detection. Matched against a component's file_key.
+    //   ehnReQbGSZhz5p3sx7Nxzw = "Test Library" (429 components as of 2026-07)
+    excludeLibraryKeys: overrides.excludeLibraryKeys ?? (
+      process.env.EXCLUDE_LIBRARY_KEYS
+        ? process.env.EXCLUDE_LIBRARY_KEYS.split(',').map(s => s.trim()).filter(Boolean)
+        : ['ehnReQbGSZhz5p3sx7Nxzw']
+    ),
     hotFileCount: overrides.hotFileCount ?? parseInt(process.env.HOT_FILE_COUNT ?? '15', 10),
     hotFileWindowDays: overrides.hotFileWindowDays ?? parseInt(process.env.HOT_FILE_WINDOW_DAYS ?? '60', 10),
   };
