@@ -36,8 +36,10 @@
 - `src/emitters/slack.ts` — `formatSlackBlocks(result, mention)`, `resolveMention(user, map)`, `postDigest(...)`
 - `src/store/review-store.ts` — D1-backed `ReviewStore` (`claim`, `getCommentId`, `setCommentId`, `clear`)
 - `src/cli/review.ts` — `reviewCommand(urlOrKey, options)` + `parseFigmaTarget(input)`
-- `worker/receiver.ts` — webhook endpoint (verify passcode → enqueue)
-- `worker/consumer.ts` — queue consumer (claim → review → emit → store)
+- `worker/handlers/receiver.ts` — webhook handler logic (verify passcode → enqueue)
+- `worker/handlers/consumer.ts` — queue handler logic (claim → review → emit → store)
+- `worker/index.ts` — the single Worker entry: one `export default` exposing both `fetch` and `queue`
+- `tsconfig.worker.json` — type-checks `worker/` + its `src/` imports (the base tsconfig only covers `src/`)
 - `wrangler.jsonc` — Worker + Queue + D1 + KV bindings
 - Test files mirroring each of the above under `test/`
 
@@ -91,7 +93,7 @@ export interface ReviewResult {
   findings: Finding[];
   counts: Record<FindingKind, number>;
   cleanScore: number | null;
-  tooLarge?: { nodeCount: number };
+  tooLarge?: { reason: 'immediate-breadth' | 'ceiling' | 'fetch-failed'; nodeCount?: number };
 }
 ```
 
@@ -403,7 +405,7 @@ Walks a fetched subtree once and emits `deprecated` + `detached` findings, plus 
   ```
 
 **Detail for each finding kind:**
-- `deprecated`: an INSTANCE whose component `key` resolves (via `ctx.catalog.keyToInfo`) to a `displayName` that `isDeprecatedName(...)`. `detail` = that set displayName.
+- `deprecated`: an INSTANCE whose component `key` **resolves in `ctx.catalog.keyToInfo`** to a `displayName` that `isDeprecatedName(...)`. **Do NOT fall back to the raw `meta.name` when the key is absent from the catalog** — `meta.name` is the *variant* name (e.g. `Type=Secondary`), which never carries the set's `[DEPRECATED]` marker, so guessing on it silently passes deprecated components as clean (spec §4.2 miss mode). If the key isn't in the catalog, skip the deprecated check for that node (it may still be flagged `detached`). `detail` = the resolved set displayName.
 - `detached`: `classifyNode(node, ctx.components, ctx.libraryKeys, ctx.catalog.keyToFileKey).category === 'detached'`. `detail` = `` `was ${node.componentId ?? 'unknown component'}` `` (names are often blank — see spec §4.3).
 - A node counts once: check deprecated first; if not deprecated but detached, emit detached. A clean current-SoT instance emits nothing but increments `cleanCurrentDS`.
 
@@ -467,6 +469,22 @@ it('emits nothing for a clean current-SoT instance and counts it clean', () => {
   expect(r.componentSurface).toBe(1);
 });
 
+it('does NOT flag deprecated by guessing on the variant name when the key is absent from the catalog', () => {
+  // meta.name literally contains the marker, but the component key is NOT in the catalog.
+  // We must not treat the variant name as authoritative (it would be a false positive here,
+  // and symmetrically a false negative for a real deprecated set whose variant name is clean).
+  const localComponents: Record<string, FigmaComponentMeta> = {
+    cUnknown: { key: 'kUnknown', name: '[🔴DEPRECATED]RawVariantName', description: '', file_key: ARCADE3 },
+  };
+  const localCtx = { components: localComponents, catalog, libraryKeys }; // catalog has no 'kUnknown'
+  const root: FigmaNode = {
+    id: 'root', name: 'Frame', type: 'FRAME',
+    children: [{ id: '9:9', name: 'x', type: 'INSTANCE', componentId: 'cUnknown' }],
+  };
+  const r = collectFindings(root, localCtx);
+  expect(r.findings.some((f) => f.kind === 'deprecated')).toBe(false);
+});
+
 it('counts total nodes across the tree', () => {
   const root: FigmaNode = {
     id: 'root', name: 'Frame', type: 'FRAME',
@@ -519,8 +537,11 @@ export function collectFindings(root: FigmaNode, ctx: CheckContext): CollectResu
     const meta = ctx.components[node.componentId];
     if (!meta) return null;
     const info = ctx.catalog.keyToInfo.get(meta.key);
-    const displayName = info?.displayName ?? meta.name;
-    return isDeprecatedName(displayName) ? displayName : null;
+    // Only trust the catalog's SET display name. meta.name is the VARIANT name
+    // (e.g. "Type=Secondary") and never carries the set's [DEPRECATED] marker, so
+    // guessing on it would silently pass deprecated components as clean (spec §4.2).
+    if (!info) return null;
+    return isDeprecatedName(info.displayName) ? info.displayName : null;
   }
 
   function walk(node: FigmaNode): void {
@@ -557,7 +578,7 @@ export function collectFindings(root: FigmaNode, ctx: CheckContext): CollectResu
 - [ ] **Step 4: Run test to verify it passes**
 
 Run: `npx vitest run test/review/checks.test.ts`
-Expected: PASS (4 tests).
+Expected: PASS (5 tests).
 
 - [ ] **Step 5: Commit**
 
@@ -589,17 +610,21 @@ Ties fetch, the size ceiling, findings, and `cleanScore` into one pure entry poi
   }
   export function review(deps: ReviewDeps, target: ReviewTarget): Promise<ReviewResult>;
   ```
-- **Fetch:** `GET /v1/files/{fileKey}/nodes?ids={nodeId}` (+`version` when present) via `client.get`. The response shape is `{ nodes: { [id]: { document, components } } }`. If the node is missing, return an empty result with `frameName = target.frameName ?? nodeId`.
-- **Ceiling:** run `collectFindings`; if `nodeCount > MAX_REVIEW_NODES`, discard findings and set `tooLarge: { nodeCount }`, `findings: []`, `cleanScore: null`.
+- **Two-stage fetch (fixes the "ceiling protects nothing" bug).** The ceiling must be enforced *before* the expensive deep fetch, and a failed deep fetch must degrade to a `tooLarge` result — never throw (a throw becomes a silent no-op in the consumer, exactly on the giant sections the ceiling exists for). Order:
+  1. **Probe shallow:** `GET /v1/files/{fileKey}/nodes?ids={nodeId}&depth=1` (+`version`). This returns the node plus only its immediate children — small and reliable even for a page-sized section. Read `frameName` from `document.name`. If the node is missing, return an empty result with `frameName = target.frameName ?? nodeId`. If its immediate `children.length > MAX_IMMEDIATE_CHILDREN` (500), bail immediately with `tooLarge: { reason: 'immediate-breadth' }` (a node with hundreds of direct children is a page/section, not a reviewable frame).
+  2. **Deep fetch, guarded:** wrap the full-subtree fetch (`GET .../nodes?ids={nodeId}`, no depth) in try/catch. On any error (oversize 400, dropped socket, timeout), return `tooLarge: { reason: 'fetch-failed' }` — do NOT rethrow.
+  3. **Ceiling after walk:** run `collectFindings`; if `nodeCount > MAX_REVIEW_NODES`, discard findings, set `tooLarge: { reason: 'ceiling', nodeCount }`.
+- In all `tooLarge` cases: `findings: []`, `counts: emptyCounts()`, `cleanScore: null`.
 - **cleanScore:** `componentSurface > 0 ? Math.round(cleanCurrentDS / componentSurface * 100) : null`.
 - **status:** default `'READY_FOR_DEV'` when `target.status` is absent.
+- Consts: `export const MAX_REVIEW_NODES = 5000;` and `export const MAX_IMMEDIATE_CHILDREN = 500;`
 
 - [ ] **Step 1: Write the failing test**
 
 ```ts
 // test/review/reviewer.test.ts
 import { describe, it, expect, vi } from 'vitest';
-import { review, MAX_REVIEW_NODES } from '../../src/review/reviewer.js';
+import { review, MAX_REVIEW_NODES, MAX_IMMEDIATE_CHILDREN } from '../../src/review/reviewer.js';
 import { FigmaClient } from '../../src/collectors/figma-client.js';
 import type { Catalog } from '../../src/collectors/team-catalog.js';
 
@@ -611,25 +636,25 @@ const catalog: Catalog = {
 };
 const now = () => '2026-07-10T00:00:00.000Z';
 
-function depsWithNodesResponse(resp: any) {
+// The reviewer calls client.get twice: a depth=1 probe, then a deep fetch (no depth).
+// `probe` is returned when params.depth === '1'; `deep` (a value, or a thrown error) otherwise.
+function deps(probe: any, deep?: any | (() => never)) {
   const client = new FigmaClient('t');
-  vi.spyOn(client, 'get').mockResolvedValue(resp);
+  vi.spyOn(client, 'get').mockImplementation(async (_path: string, params?: Record<string, string>) => {
+    if (params?.depth === '1') return probe;
+    if (typeof deep === 'function') return (deep as () => never)();
+    return deep;
+  });
   return { client, catalog, libraryKeys, now };
 }
 
+function node(children: any[], type = 'FRAME', name = 'Checkout') {
+  return { nodes: { '43:2': { components: { cDep: { key: 'kDep', name: 'X', description: '', file_key: ARCADE3 } }, document: { id: '43:2', name, type, children } } } };
+}
+
 it('returns a deprecated finding and a cleanScore', async () => {
-  const resp = {
-    nodes: {
-      '43:2': {
-        components: { cDep: { key: 'kDep', name: 'X', description: '', file_key: ARCADE3 } },
-        document: {
-          id: '43:2', name: 'Checkout', type: 'FRAME',
-          children: [{ id: '43:3', name: 'div', type: 'INSTANCE', componentId: 'cDep' }],
-        },
-      },
-    },
-  };
-  const result = await review(depsWithNodesResponse(resp), { fileKey: 'F', nodeId: '43:2' });
+  const child = { id: '43:3', name: 'div', type: 'INSTANCE', componentId: 'cDep' };
+  const result = await review(deps(node([child]), node([child])), { fileKey: 'F', nodeId: '43:2' });
   expect(result.frameName).toBe('Checkout');
   expect(result.counts.deprecated).toBe(1);
   expect(result.findings[0].kind).toBe('deprecated');
@@ -638,19 +663,33 @@ it('returns a deprecated finding and a cleanScore', async () => {
   expect(result.status).toBe('READY_FOR_DEV');
 });
 
-it('flags tooLarge when the subtree exceeds the ceiling', async () => {
-  const children = Array.from({ length: MAX_REVIEW_NODES + 1 }, (_, i) => ({
-    id: `c${i}`, name: 'x', type: 'RECTANGLE',
-  }));
-  const resp = { nodes: { '1:1': { components: {}, document: { id: '1:1', name: 'Big', type: 'SECTION', children } } } };
-  const result = await review(depsWithNodesResponse(resp), { fileKey: 'F', nodeId: '1:1' });
+it('bails as immediate-breadth when the probe shows too many direct children', async () => {
+  const many = Array.from({ length: MAX_IMMEDIATE_CHILDREN + 1 }, (_, i) => ({ id: `c${i}`, name: 'x', type: 'FRAME' }));
+  // deep fetch must NOT be called — pass a throwing deep to prove the probe short-circuits.
+  const result = await review(deps(node(many, 'SECTION', 'Big'), () => { throw new Error('deep fetch should not run'); }), { fileKey: 'F', nodeId: '43:2' });
+  expect(result.tooLarge?.reason).toBe('immediate-breadth');
+  expect(result.findings).toHaveLength(0);
+  expect(result.cleanScore).toBeNull();
+});
+
+it('flags tooLarge=ceiling when the deep subtree exceeds MAX_REVIEW_NODES', async () => {
+  const deep = node(Array.from({ length: MAX_REVIEW_NODES + 1 }, (_, i) => ({ id: `c${i}`, name: 'x', type: 'RECTANGLE' })), 'FRAME', 'Big');
+  const result = await review(deps(node([{ id: 'c0', name: 'x', type: 'RECTANGLE' }]), deep), { fileKey: 'F', nodeId: '43:2' });
+  expect(result.tooLarge?.reason).toBe('ceiling');
   expect(result.tooLarge?.nodeCount).toBeGreaterThan(MAX_REVIEW_NODES);
   expect(result.findings).toHaveLength(0);
   expect(result.cleanScore).toBeNull();
 });
 
-it('returns an empty result when the node is missing from the response', async () => {
-  const result = await review(depsWithNodesResponse({ nodes: {} }), { fileKey: 'F', nodeId: 'gone', frameName: 'Gone' });
+it('degrades to tooLarge=fetch-failed when the deep fetch throws (never rethrows)', async () => {
+  const result = await review(deps(node([{ id: 'c0', name: 'x', type: 'FRAME' }]), () => { throw new Error('terminated'); }), { fileKey: 'F', nodeId: '43:2' });
+  expect(result.tooLarge?.reason).toBe('fetch-failed');
+  expect(result.findings).toHaveLength(0);
+  expect(result.cleanScore).toBeNull();
+});
+
+it('returns an empty result when the node is missing from the probe', async () => {
+  const result = await review(deps({ nodes: {} }), { fileKey: 'F', nodeId: 'gone', frameName: 'Gone' });
   expect(result.frameName).toBe('Gone');
   expect(result.findings).toHaveLength(0);
   expect(result.cleanScore).toBeNull();
@@ -674,6 +713,7 @@ import type { FigmaNode, FigmaComponentMeta } from '../types.js';
 import type { Finding, FindingKind, ReviewResult, ReviewTarget } from './types.js';
 
 export const MAX_REVIEW_NODES = 5000;
+export const MAX_IMMEDIATE_CHILDREN = 500;
 
 export interface ReviewDeps {
   client: FigmaClient;
@@ -691,35 +731,52 @@ function emptyCounts(): Record<FindingKind, number> {
 }
 
 export async function review(deps: ReviewDeps, target: ReviewTarget): Promise<ReviewResult> {
-  const params: Record<string, string> = { ids: target.nodeId };
-  if (target.version) params.version = target.version;
+  const path = `/v1/files/${target.fileKey}/nodes`;
+  const versioned = (extra: Record<string, string>): Record<string, string> =>
+    target.version ? { ids: target.nodeId, version: target.version, ...extra } : { ids: target.nodeId, ...extra };
 
-  const resp = await deps.client.get<NodesResponse>(`/v1/files/${target.fileKey}/nodes`, params);
-  const nodeData = resp.nodes[target.nodeId];
+  // Stage 1: shallow probe (depth=1) — small & reliable even for a page-sized section.
+  const probe = await deps.client.get<NodesResponse>(path, versioned({ depth: '1' }));
+  const probeNode = probe.nodes[target.nodeId];
 
   const base: Omit<ReviewResult, 'findings' | 'counts' | 'cleanScore' | 'tooLarge'> = {
     fileKey: target.fileKey,
     version: target.version,
     frameNodeId: target.nodeId,
-    frameName: nodeData?.document.name ?? target.frameName ?? target.nodeId,
+    frameName: probeNode?.document.name ?? target.frameName ?? target.nodeId,
     reviewedAt: deps.now(),
     triggeredBy: target.triggeredBy,
     status: target.status ?? 'READY_FOR_DEV',
   };
+  const empty = { findings: [] as Finding[], counts: emptyCounts(), cleanScore: null };
 
-  if (!nodeData) {
-    return { ...base, findings: [], counts: emptyCounts(), cleanScore: null };
+  if (!probeNode) return { ...base, ...empty };
+
+  if ((probeNode.document.children?.length ?? 0) > MAX_IMMEDIATE_CHILDREN) {
+    return { ...base, ...empty, tooLarge: { reason: 'immediate-breadth' } };
   }
 
+  // Stage 2: deep fetch, guarded — a failure here must NOT throw (would become a silent
+  // no-op in the consumer on exactly the giant sections the ceiling exists for).
+  let deepNode: NodesResponse['nodes'][string] | undefined;
+  try {
+    const deep = await deps.client.get<NodesResponse>(path, versioned({}));
+    deepNode = deep.nodes[target.nodeId];
+  } catch {
+    return { ...base, ...empty, tooLarge: { reason: 'fetch-failed' } };
+  }
+  if (!deepNode) return { ...base, ...empty };
+
   const ctx: CheckContext = {
-    components: nodeData.components ?? {},
+    components: deepNode.components ?? {},
     catalog: deps.catalog,
     libraryKeys: deps.libraryKeys,
   };
-  const collected = collectFindings(nodeData.document, ctx);
+  const collected = collectFindings(deepNode.document, ctx);
 
+  // Stage 3: ceiling after walk (breadth probe already caught the worst cases).
   if (collected.nodeCount > MAX_REVIEW_NODES) {
-    return { ...base, findings: [], counts: emptyCounts(), cleanScore: null, tooLarge: { nodeCount: collected.nodeCount } };
+    return { ...base, ...empty, tooLarge: { reason: 'ceiling', nodeCount: collected.nodeCount } };
   }
 
   const counts = emptyCounts();
@@ -736,7 +793,7 @@ export async function review(deps: ReviewDeps, target: ReviewTarget): Promise<Re
 - [ ] **Step 4: Run test to verify it passes**
 
 Run: `npx vitest run test/review/reviewer.test.ts`
-Expected: PASS (3 tests).
+Expected: PASS (5 tests).
 
 - [ ] **Step 5: Run the whole suite + build**
 
@@ -845,9 +902,10 @@ export async function reviewCommand(input: string, options: { token?: string }):
     { fileKey, nodeId },
   );
 
-  console.log(`\n🔭 ${result.frameName} — clean DS: ${result.cleanScore ?? 'n/a'}%`);
+  console.log(`\n🔭 ${result.frameName} — on current DS lib: ${result.cleanScore ?? 'n/a'}%`);
   if (result.tooLarge) {
-    console.log(`  ⚠️  Too large to review (${result.tooLarge.nodeCount} nodes).`);
+    const detail = result.tooLarge.nodeCount ? ` (${result.tooLarge.nodeCount} nodes)` : '';
+    console.log(`  ⚠️  Too large to review — ${result.tooLarge.reason}${detail}.`);
     return;
   }
   if (result.findings.length === 0) {
@@ -943,7 +1001,7 @@ describe('formatCommentBody', () => {
   it('includes the header, score, grouped counts, and deep-links', () => {
     const body = formatCommentBody(result);
     expect(body).toContain('DS Observatory review — Checkout');
-    expect(body).toContain('Clean DS: 40%');
+    expect(body).toContain('On current DS lib: 40%');
     expect(body).toContain('Deprecated (1)');
     expect(body).toContain('[🔴DEPRECATED]Button / Secondary');
     expect(body).toContain('node-id=43%3A3');
@@ -953,10 +1011,15 @@ describe('formatCommentBody', () => {
     const body = formatCommentBody({ ...result, cleanScore: null });
     expect(body).toContain('no DS components');
   });
-  it('renders a too-large notice', () => {
-    const body = formatCommentBody({ ...result, tooLarge: { nodeCount: 9000 }, findings: [], counts: { deprecated: 0, detached: 0 } });
+  it('renders a too-large notice with the node count when present (ceiling)', () => {
+    const body = formatCommentBody({ ...result, tooLarge: { reason: 'ceiling', nodeCount: 9000 }, findings: [], counts: { deprecated: 0, detached: 0 } });
     expect(body).toContain('too large');
     expect(body).toContain('9000');
+  });
+  it('renders a too-large notice without a count when the fetch failed', () => {
+    const body = formatCommentBody({ ...result, tooLarge: { reason: 'fetch-failed' }, findings: [], counts: { deprecated: 0, detached: 0 } });
+    expect(body).toContain('too large');
+    expect(body).not.toContain('undefined');
   });
 });
 
@@ -1036,13 +1099,17 @@ export function formatCommentBody(result: ReviewResult): string {
   const lines: string[] = [`🔭 DS Observatory review — ${result.frameName}`];
 
   if (result.tooLarge) {
-    lines.push(`This section is too large to review automatically (${result.tooLarge.nodeCount} nodes). Break it into frames or review manually.`);
+    const count = result.tooLarge.nodeCount ? ` (${result.tooLarge.nodeCount} nodes)` : '';
+    lines.push(`This section is too large to review automatically${count}. Break it into frames or review manually.`);
     return lines.join('\n');
   }
 
   const score = result.cleanScore === null ? 'n/a — no DS components' : `${result.cleanScore}%`;
   const total = result.findings.length;
-  lines.push(`Clean DS: ${score}  ·  ${total} issue(s)`, '');
+  // "On current DS lib" not "Clean DS": v1 cannot tell DLS/0.2/0.3 apart inside the
+  // consolidated library (spec §9), so this is "% from the current library, non-deprecated",
+  // NOT "% on the newest generation". Do not relabel as clean/current-SoT.
+  lines.push(`On current DS lib: ${score}  ·  ${total} issue(s)`, '');
 
   if (total === 0) {
     lines.push('✅ No deprecated or detached components found.');
@@ -1191,7 +1258,7 @@ export function formatSlackBlocks(result: ReviewResult, mention: string): unknow
       type: 'section',
       text: {
         type: 'mrkdwn',
-        text: `🔭 *<${link}|${result.frameName}>* marked ready for dev by ${mention}\nClean DS: ${score} · ${summary}`,
+        text: `🔭 *<${link}|${result.frameName}>* marked ready for dev by ${mention}\nOn current DS lib: ${score} · ${summary}`,
       },
     },
     ...result.findings.slice(0, 10).map((f) => ({
@@ -1530,57 +1597,59 @@ git commit -m "feat(store): D1 review store (dedup claim + comment id)"
 Assembles the deployable Worker from already-tested parts. The receiver and consumer are thin glue; the logic they call is all unit-tested. Verification here is a live smoke test, since Worker wiring is integration-level.
 
 **Files:**
-- Create: `worker/receiver.ts`
-- Create: `worker/consumer.ts`
+- Create: `worker/handlers/receiver.ts` (the `fetch` handler logic)
+- Create: `worker/handlers/consumer.ts` (the `queue` handler logic)
+- Create: `worker/index.ts` (**the single Worker entry** — one `export default` with BOTH `fetch` and `queue`)
+- Create: `tsconfig.worker.json`
 - Create: `wrangler.jsonc`
-- Modify: `README.md`
+- Modify: `package.json` (add a `build:worker` script), `README.md`
 
 **Interfaces:**
 - Consumes: `verifyAndBuildJob`/`ReviewJob` (Task 9), `review`/`ReviewDeps` (Task 5), `fetchTeamComponentCatalog` (Task 3), emitters (Tasks 7–8), `ReviewStore` (Task 10), `FigmaClient` (existing).
-- The catalog is fetched once per consumer invocation and cached in a module-level variable keyed by nothing (cold-start rebuild is acceptable; a KV cache is a v2 optimization noted in the spec).
+- The catalog is fetched once per isolate and cached in a module-level variable (cold-start rebuild is acceptable; a KV cache is a v2 optimization noted in the spec).
 
-- [ ] **Step 1: Write the receiver**
+> **Why one entry file (fixes the "consumer never loads" critical):** a Cloudflare Worker loads exactly ONE module — the file named by `main`. Cloudflare invokes `fetch` for HTTP and `queue` for queue messages, but **both must be properties of that one module's single `default` export.** Two files each with their own `export default` means only `main`'s export loads; the queue handler is never registered and every queued job dead-letters. So the handler *logic* lives in two files for clarity, but `worker/index.ts` is the only entry and composes both. `main` points at `worker/index.ts`.
+
+- [ ] **Step 1: Write the receiver handler**
 
 ```ts
-// worker/receiver.ts
-import { verifyAndBuildJob } from './verify.js';
-import type { ReviewJob } from './verify.js';
+// worker/handlers/receiver.ts
+import { verifyAndBuildJob } from '../verify.js';
+import type { ReviewJob } from '../verify.js';
 
-export interface Env {
+export interface ReceiverEnv {
   REVIEW_QUEUE: { send(body: ReviewJob): Promise<void> };
   WEBHOOK_PASSCODE: string;
 }
 
-export default {
-  async fetch(request: Request, env: Env): Promise<Response> {
-    if (request.method !== 'POST') return new Response('ok', { status: 200 });
-    let payload: unknown;
-    try {
-      payload = await request.json();
-    } catch {
-      return new Response('bad json', { status: 400 });
-    }
-    const result = verifyAndBuildJob(payload as any, env.WEBHOOK_PASSCODE);
-    if (!result.ok) return new Response('forbidden', { status: 403 });
-    if (result.job) await env.REVIEW_QUEUE.send(result.job);
-    return new Response('ok', { status: 200 });  // fast ack — always
-  },
-};
+export async function handleWebhook(request: Request, env: ReceiverEnv): Promise<Response> {
+  if (request.method !== 'POST') return new Response('ok', { status: 200 });
+  let payload: unknown;
+  try {
+    payload = await request.json();
+  } catch {
+    return new Response('bad json', { status: 400 });
+  }
+  const result = verifyAndBuildJob(payload as any, env.WEBHOOK_PASSCODE);
+  if (!result.ok) return new Response('forbidden', { status: 403 });
+  if (result.job) await env.REVIEW_QUEUE.send(result.job);
+  return new Response('ok', { status: 200 });  // fast ack — always
+}
 ```
 
-- [ ] **Step 2: Write the consumer**
+- [ ] **Step 2: Write the consumer handler**
 
 ```ts
-// worker/consumer.ts
-import { review } from '../src/review/reviewer.js';
-import { fetchTeamComponentCatalog } from '../src/collectors/team-catalog.js';
-import { FigmaClient } from '../src/collectors/figma-client.js';
-import { ReviewStore } from '../src/store/review-store.js';
-import type { D1Like } from '../src/store/review-store.js';
-import { postFrameComment, deleteFrameComment } from '../src/emitters/figma-comment.js';
-import { formatSlackBlocks, resolveMention, postDigest } from '../src/emitters/slack.js';
-import type { Catalog } from '../src/collectors/team-catalog.js';
-import type { ReviewJob } from './verify.js';
+// worker/handlers/consumer.ts
+import { review } from '../../src/review/reviewer.js';
+import { fetchTeamComponentCatalog } from '../../src/collectors/team-catalog.js';
+import { FigmaClient } from '../../src/collectors/figma-client.js';
+import { ReviewStore } from '../../src/store/review-store.js';
+import type { D1Like } from '../../src/store/review-store.js';
+import { postFrameComment, deleteFrameComment } from '../../src/emitters/figma-comment.js';
+import { formatSlackBlocks, resolveMention, postDigest } from '../../src/emitters/slack.js';
+import type { Catalog } from '../../src/collectors/team-catalog.js';
+import type { ReviewJob } from '../verify.js';
 
 export interface ConsumerEnv {
   DB: D1Like;
@@ -1594,59 +1663,82 @@ export interface ConsumerEnv {
 
 let catalogCache: Catalog | null = null;
 
-export default {
-  async queue(batch: { messages: { body: ReviewJob; ack(): void }[] }, env: ConsumerEnv): Promise<void> {
-    const client = new FigmaClient(env.FIGMA_BOT_TOKEN);
-    const store = new ReviewStore(env.DB);
-    if (!catalogCache) catalogCache = await fetchTeamComponentCatalog(client, env.FIGMA_DS_TEAM_ID);
+export async function handleQueue(
+  batch: { messages: { body: ReviewJob; ack(): void }[] },
+  env: ConsumerEnv,
+): Promise<void> {
+  const client = new FigmaClient(env.FIGMA_BOT_TOKEN);
+  const store = new ReviewStore(env.DB);
+  if (!catalogCache) catalogCache = await fetchTeamComponentCatalog(client, env.FIGMA_DS_TEAM_ID);
 
-    for (const msg of batch.messages) {
-      const job = msg.body;
-      try {
-        // Clear on COMPLETED / NONE — delete stale comment, drop the row.
-        if (job.status !== 'READY_FOR_DEV') {
-          const existing = await store.getCommentId(job.fileKey, job.nodeId);
-          if (existing) { await deleteFrameComment(client, job.fileKey, existing).catch(() => {}); await store.clear(job.fileKey, job.nodeId); }
-          msg.ack();
-          continue;
-        }
-
-        const dedupKey = `${job.fileKey}:${job.nodeId}:${job.version ?? 'live'}`;
-        if (!(await store.claim(dedupKey))) { msg.ack(); continue; }
-
-        const result = await review(
-          { client, catalog: catalogCache, libraryKeys: { dls: env.DLS_KEY, arcade: env.ARCADE_KEY, arcade3: env.ARCADE3_KEY }, now: () => new Date().toISOString() },
-          { fileKey: job.fileKey, nodeId: job.nodeId, version: job.version, frameName: job.frameName, triggeredBy: job.triggeredBy, status: 'READY_FOR_DEV' },
-        );
-
-        // Upsert comment: delete old (same bot author) then post new.
-        const prev = await store.getCommentId(job.fileKey, job.nodeId);
-        if (prev) await deleteFrameComment(client, job.fileKey, prev).catch(() => {});
-        const newId = await postFrameComment(client, result);
-        await store.setCommentId(job.fileKey, job.nodeId, newId);
-
-        // Slack only when there is something to act on.
-        if (result.findings.length > 0 || result.tooLarge) {
-          const map = JSON.parse(env.FIGMA_SLACK_MAP || '{}');
-          const mention = resolveMention(result.triggeredBy, undefined, map);
-          await postDigest(env.SLACK_BOT_TOKEN, env.SLACK_CHANNEL, formatSlackBlocks(result, mention), `${result.frameName} review`);
-        }
+  for (const msg of batch.messages) {
+    const job = msg.body;
+    try {
+      // Clear on COMPLETED / NONE — delete stale comment, drop the row.
+      if (job.status !== 'READY_FOR_DEV') {
+        const existing = await store.getCommentId(job.fileKey, job.nodeId);
+        if (existing) { await deleteFrameComment(client, job.fileKey, existing).catch(() => {}); await store.clear(job.fileKey, job.nodeId); }
         msg.ack();
-      } catch (err) {
-        console.error('review failed', job, err);
-        msg.ack();  // ack to avoid poison-loop; failures are logged. (Retry policy is a v2 tuning item.)
+        continue;
       }
+
+      const dedupKey = `${job.fileKey}:${job.nodeId}:${job.version ?? 'live'}`;
+      if (!(await store.claim(dedupKey))) { msg.ack(); continue; }
+
+      const result = await review(
+        { client, catalog: catalogCache, libraryKeys: { dls: env.DLS_KEY, arcade: env.ARCADE_KEY, arcade3: env.ARCADE3_KEY }, now: () => new Date().toISOString() },
+        { fileKey: job.fileKey, nodeId: job.nodeId, version: job.version, frameName: job.frameName, triggeredBy: job.triggeredBy, status: 'READY_FOR_DEV' },
+      );
+
+      // Upsert comment: delete old (same bot author) then post new.
+      const prev = await store.getCommentId(job.fileKey, job.nodeId);
+      if (prev) await deleteFrameComment(client, job.fileKey, prev).catch(() => {});
+      const newId = await postFrameComment(client, result);
+      await store.setCommentId(job.fileKey, job.nodeId, newId);
+
+      // Slack only when there is something to act on.
+      if (result.findings.length > 0 || result.tooLarge) {
+        const map = JSON.parse(env.FIGMA_SLACK_MAP || '{}');
+        const mention = resolveMention(result.triggeredBy, undefined, map);
+        await postDigest(env.SLACK_BOT_TOKEN, env.SLACK_CHANNEL, formatSlackBlocks(result, mention), `${result.frameName} review`);
+      }
+      msg.ack();
+    } catch (err) {
+      console.error('review failed', job, err);
+      msg.ack();  // ack to avoid poison-loop; failures are logged. (Retry policy is a v2 tuning item.)
     }
+  }
+}
+```
+
+- [ ] **Step 3: Write the single Worker entry that composes both handlers**
+
+```ts
+// worker/index.ts
+import { handleWebhook } from './handlers/receiver.js';
+import type { ReceiverEnv } from './handlers/receiver.js';
+import { handleQueue } from './handlers/consumer.js';
+import type { ConsumerEnv } from './handlers/consumer.js';
+
+export type Env = ReceiverEnv & ConsumerEnv;
+
+// ONE default export with BOTH handlers — this is the entire Worker.
+export default {
+  fetch(request: Request, env: Env): Promise<Response> {
+    return handleWebhook(request, env);
+  },
+  queue(batch: { messages: { body: any; ack(): void }[] }, env: Env): Promise<void> {
+    return handleQueue(batch, env);
   },
 };
 ```
 
-- [ ] **Step 3: Write `wrangler.jsonc`**
+- [ ] **Step 4: Write `wrangler.jsonc` (main → the single entry)**
 
 ```jsonc
 {
   "name": "ds-observatory-review",
-  "main": "worker/receiver.ts",
+  "main": "worker/index.ts",
   "compatibility_date": "2026-07-01",
   "compatibility_flags": ["nodejs_compat"],
   "queues": {
@@ -1658,34 +1750,58 @@ export default {
 }
 ```
 
-> Secrets set via `wrangler secret put`: `WEBHOOK_PASSCODE`, `FIGMA_BOT_TOKEN`, `SLACK_BOT_TOKEN`, `FIGMA_SLACK_MAP`. The consumer entry (`worker/consumer.ts`) is registered as the queue consumer — consult the `wrangler` skill for the exact single-vs-multi-worker binding syntax for your account; both entrypoints may live in one Worker via a combined module or two Workers sharing the queue.
+> Secrets set via `wrangler secret put`: `WEBHOOK_PASSCODE`, `FIGMA_BOT_TOKEN`, `SLACK_BOT_TOKEN`, `FIGMA_SLACK_MAP`. `main` is the single entry `worker/index.ts`; the `consumers` array only tells Cloudflare which queue this same Worker consumes — the actual handler is the `queue` method on the entry's default export. Consult the `wrangler` skill to confirm current queue-binding syntax for your account.
 
-- [ ] **Step 4: Type-check the whole project**
+- [ ] **Step 5: Add a Worker type-check config + build script (fixes "npm build never checks worker/")**
 
-Run: `npm run build`
-Expected: no TS errors across `src/` and `worker/`. (If `tsc` picks up Worker globals it doesn't know, add `"types": ["@cloudflare/workers-types"]`-style config per the cloudflare skill; do not weaken `src/` typing.)
+The repo's `tsconfig.json` has `rootDir: "src"` / `include: ["src"]`, so `npm run build` (`tsc`) **never type-checks `worker/`** — its build gates are meaningless for half the feature. Add a dedicated Worker config that type-checks `worker/` and its cross-imports into `src/` without emitting (wrangler bundles the actual deploy via esbuild).
 
-- [ ] **Step 5: Create the D1 database and apply the schema**
+Create `tsconfig.worker.json`:
+```jsonc
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "noEmit": true,
+    "types": ["@cloudflare/workers-types"]
+  },
+  "include": ["worker", "src"]
+}
+```
+
+Install the Worker types: `npm i -D @cloudflare/workers-types wrangler`.
+
+Add to `package.json` scripts:
+```json
+    "build:worker": "tsc -p tsconfig.worker.json",
+```
+
+- [ ] **Step 6: Type-check both the library and the Worker**
+
+Run: `npm run build && npm run build:worker`
+Expected: `build` compiles `src/` (emits `dist/`) with no errors; `build:worker` type-checks `worker/` + its `src/` imports with no errors and no emit. Both must pass — this is the real gate for the Worker code.
+
+- [ ] **Step 7: Create the D1 database and apply the schema**
 
 Run (per wrangler skill): `npx wrangler d1 create ds-review-store` then `npx wrangler d1 execute ds-review-store --file worker/schema.sql`. Paste the returned `database_id` into `wrangler.jsonc`.
 
-- [ ] **Step 6: Live smoke test with a manual webhook payload**
+- [ ] **Step 8: Live smoke test with a manual webhook payload**
 
-Deploy to a dev environment (`npx wrangler dev`), then POST a hand-built `DEV_MODE_STATUS_UPDATE` payload (correct passcode, a real `file_key`/`node_id` from the Navigation file) to the receiver URL. Verify: 200 returned immediately; within a minute a summary comment appears on the frame in Figma and a digest lands in `#ads-core-team`. Flip the same node's status to `COMPLETED` and confirm the comment is removed.
+Deploy to a dev environment (`npx wrangler dev`), then POST a hand-built `DEV_MODE_STATUS_UPDATE` payload (correct passcode, a real `file_key`/`node_id` from the Navigation file) to the entry Worker's URL. Verify: 200 returned immediately; within a minute a summary comment appears on the frame in Figma and a digest lands in `#ads-core-team`. Then POST a large SECTION's `node_id` and confirm a single "too large" comment (not a crash / silent no-op). Finally flip the original node's status to `COMPLETED` and confirm the comment is removed.
 
-- [ ] **Step 7: Register the real Figma webhook**
+- [ ] **Step 9: Register the real Figma webhook**
 
-Per spec §2, create a `DEV_MODE_STATUS_UPDATE` webhook (Figma webhooks API) for the product team's file(s), pointing at the deployed receiver, with the `WEBHOOK_PASSCODE`. Confirm a real "ready for dev" flip triggers the loop.
+Per spec §2, create a `DEV_MODE_STATUS_UPDATE` webhook (Figma webhooks API) for the product team's file(s), pointing at the deployed Worker URL, with the `WEBHOOK_PASSCODE`. Confirm a real "ready for dev" flip triggers the loop.
 
-- [ ] **Step 8: Update the README**
+- [ ] **Step 10: Update the README**
 
-Add a "Active Review" section documenting: the `review` CLI command (with `--comment`/`--slack`), the Worker architecture, required secrets, and the two v2-deferred checks. Keep it consistent with the existing README voice.
+Add a "Active Review" section documenting: the `review` CLI command (with `--comment`/`--slack`), the Worker architecture (single entry with `fetch` + `queue`), required secrets, and the two v2-deferred checks. Keep it consistent with the existing README voice.
 
-- [ ] **Step 9: Commit**
+- [ ] **Step 11: Commit**
 
 ```bash
-git add worker/receiver.ts worker/consumer.ts wrangler.jsonc README.md
-git commit -m "feat(worker): webhook receiver + queue consumer + wrangler config"
+git add worker/handlers/receiver.ts worker/handlers/consumer.ts worker/index.ts tsconfig.worker.json wrangler.jsonc package.json README.md
+git commit -m "feat(worker): single-entry webhook receiver + queue consumer + wrangler config"
 ```
 
 ---
@@ -1695,7 +1811,7 @@ git commit -m "feat(worker): webhook receiver + queue consumer + wrangler config
 **Spec coverage:**
 - §2 trigger (DEV_MODE_STATUS_UPDATE, passcode, READY_FOR_DEV/COMPLETED/NONE) → Tasks 9, 11.
 - §3 architecture (receiver → queue → consumer → emitters → store; why-not-plugin) → Tasks 9–11.
-- §4.1 size ceiling → Task 5 (`MAX_REVIEW_NODES`, `tooLarge`).
+- §4.1 size ceiling → Task 5 (`depth=1` probe + `MAX_IMMEDIATE_CHILDREN` + `MAX_REVIEW_NODES`, guarded deep fetch, `tooLarge.reason`).
 - §4.2 deprecated + variant→set-name resolution → Tasks 2, 4 (test asserts set-name catch).
 - §4.3 detached (weak detail acknowledged) → Task 4.
 - §4.4 idempotency (dedup key + D1 claim) → Tasks 10, 11.
@@ -1709,6 +1825,13 @@ git commit -m "feat(worker): webhook receiver + queue consumer + wrangler config
 
 **Known simplification (surfaced, not hidden):** the spec's §6.2 Slack debounce (batch bulk-flips per designer within 60s) is deferred — v1 posts one Slack message per frame. Bulk "ready for dev" flips will produce multiple messages. Revisit with a Durable Object timer if noise is real.
 
+**Adversarial-review fixes applied (second pass):**
+- **C1 — size ceiling was checked after the full fetch** (huge sections would crash → silent no-op). Task 5 now does a `depth=1` probe → `MAX_IMMEDIATE_CHILDREN` breadth bail → guarded deep fetch that degrades to `tooLarge:{reason:'fetch-failed'}` instead of throwing → `MAX_REVIEW_NODES` ceiling last. `tooLarge` gained a `reason`; emitter/CLI handle the countless case.
+- **C2 — two `export default` files meant the queue handler never loaded.** Task 11 now has a single entry (`worker/index.ts`) exposing both `fetch` and `queue`; handler logic split into `worker/handlers/*`; `main` → `worker/index.ts`.
+- **M1 — `npm run build` never type-checked `worker/`.** Task 11 adds `tsconfig.worker.json` + a `build:worker` script; the build gate now runs both.
+- **M2 — `cleanScore` labeled "Clean DS" overclaimed** (can't distinguish generations in the consolidated library). Relabeled everywhere to "On current DS lib" with an in-code caveat; math unchanged.
+- **M3 — deprecated check fell back to the variant name when the key was absent from the catalog** (false negatives). Task 4 now returns null when `info` is missing; a new test asserts no guessing on `meta.name`.
+
 **Placeholder scan:** no TBD/TODO; every code step has complete code. `<fill after wrangler d1 create>` and `<ds team id>` in `wrangler.jsonc` are genuine deploy-time secrets/ids, not code placeholders.
 
-**Type consistency:** `Finding`/`ReviewResult`/`ReviewTarget` (Task 1) used unchanged in Tasks 4, 5, 7, 8, 11. `Catalog`/`ComponentInfo` (Task 3) used in Tasks 4, 5, 11. `ReviewJob` (Task 9) used in Task 11. `D1Like` (Task 10) used in Task 11. `review(deps, target)` signature consistent across Tasks 5, 6, 11. `buildDeepLink` signature consistent across Tasks 1, 7, 8.
+**Type consistency:** `Finding`/`ReviewResult`/`ReviewTarget` (Task 1, `tooLarge.reason` added) used consistently in Tasks 4, 5, 6, 7, 8, 11. `Catalog`/`ComponentInfo` (Task 3) used in Tasks 4, 5, 11. `ReviewJob` (Task 9) used in Task 11. `D1Like` (Task 10) used in Task 11. `review(deps, target)` and the `MAX_REVIEW_NODES`/`MAX_IMMEDIATE_CHILDREN` consts consistent across Tasks 5, 6, 11. `buildDeepLink` signature consistent across Tasks 1, 7, 8.
