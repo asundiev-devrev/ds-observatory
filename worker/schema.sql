@@ -1,0 +1,2 @@
+CREATE TABLE IF NOT EXISTS claims (dedup_key TEXT PRIMARY KEY, claimed_at TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS comments (frame_key TEXT PRIMARY KEY, comment_id TEXT NOT NULL);
