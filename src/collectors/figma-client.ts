@@ -148,6 +148,45 @@ export class FigmaClient {
     throw new Error(`Unexpected: exhausted retries without returning — ${path}`);
   }
 
+  async post<T = unknown>(path: string, body: unknown): Promise<T> {
+    return this.send<T>('POST', path, body);
+  }
+
+  async delete<T = unknown>(path: string): Promise<T> {
+    return this.send<T>('DELETE', path);
+  }
+
+  private async send<T>(method: 'POST' | 'DELETE', path: string, body?: unknown): Promise<T> {
+    const url = `${BASE_URL}${path}`;
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+      let response: Response;
+      try {
+        response = await fetch(url, {
+          method,
+          headers: {
+            'X-Figma-Token': this.token,
+            ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
+          },
+          ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+        });
+      } catch (err) {
+        if (attempt === MAX_RETRIES) throw new Error(`Network error after retries: ${method} ${path} — ${err}`);
+        await this.sleep(Math.pow(2, attempt + 1) * BASE_DELAY_MS);
+        continue;
+      }
+      if (response.ok) {
+        const text = await response.text();
+        return (text ? JSON.parse(text) : {}) as T;
+      }
+      if (response.status === 429 && attempt < MAX_RETRIES) {
+        await this.sleep(Math.pow(2, attempt) * BASE_DELAY_MS);
+        continue;
+      }
+      throw new Error(`Figma API error ${response.status}: ${response.statusText} — ${method} ${path}`);
+    }
+    throw new Error(`Unexpected: exhausted retries — ${method} ${path}`);
+  }
+
   private sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
