@@ -25,7 +25,7 @@ export function parseFigmaTarget(input: string): { fileKey: string; nodeId: stri
 
 const EMOJI: Record<Finding['kind'], string> = { deprecated: '🔴', detached: '⚪' };
 
-export async function reviewCommand(input: string, options: { token?: string }): Promise<void> {
+export async function reviewCommand(input: string, options: { token?: string; comment?: boolean; slack?: boolean }): Promise<void> {
   const config = loadConfig({ figmaAccessToken: options.token });
   const client = new FigmaClient(config.figmaAccessToken);
   const { fileKey, nodeId } = parseFigmaTarget(input);
@@ -57,5 +57,18 @@ export async function reviewCommand(input: string, options: { token?: string }):
   console.log(`  ${result.counts.deprecated} deprecated, ${result.counts.detached} detached\n`);
   for (const f of result.findings) {
     console.log(`  ${EMOJI[f.kind]} ${f.kind}: ${f.detail} (${f.nodeId})`);
+  }
+
+  if (options.comment) {
+    const { postFrameComment } = await import('../emitters/figma-comment.js');
+    const id = await postFrameComment(client, result);
+    console.log(`  Posted Figma comment ${id}`);
+  }
+  if (options.slack && process.env.SLACK_BOT_TOKEN) {
+    const { formatSlackBlocks, resolveMention, postDigest } = await import('../emitters/slack.js');
+    const mention = resolveMention(result.triggeredBy, undefined, {});
+    const blocks = formatSlackBlocks(result, mention);
+    await postDigest(process.env.SLACK_BOT_TOKEN, '#ads-core-team', blocks, `${result.frameName} review`);
+    console.log('  Posted Slack digest');
   }
 }
