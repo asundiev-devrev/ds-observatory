@@ -42,13 +42,14 @@ export async function handleQueue(
   for (const msg of batch.messages) {
     const job = msg.body;
     try {
-      // Clear on COMPLETED / NONE — delete stale comment, drop the row.
+      // Clear on COMPLETED / NONE — delete stale comment, drop the row, and clear claims so re-review can happen.
       if (job.status !== 'READY_FOR_DEV') {
         const existing = await store.getCommentId(job.fileKey, job.nodeId);
         if (existing) {
           await deleteFrameComment(client, job.fileKey, existing).catch(() => {});
           await store.clear(job.fileKey, job.nodeId);
         }
+        await store.clearClaims(job.fileKey, job.nodeId);
         msg.ack();
         continue;
       }

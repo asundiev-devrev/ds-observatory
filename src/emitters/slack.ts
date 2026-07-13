@@ -16,6 +16,20 @@ export function resolveMention(
 
 export function formatSlackBlocks(result: ReviewResult, mention: string): unknown[] {
   const link = buildDeepLink(result.fileKey, result.frameNodeId, result.version);
+
+  if (result.tooLarge) {
+    const count = result.tooLarge.nodeCount ? ` (${result.tooLarge.nodeCount} nodes)` : '';
+    return [
+      {
+        type: 'section',
+        text: {
+          type: 'mrkdwn',
+          text: `🔭 *<${link}|${result.frameName}>* marked ready for dev by ${mention}\n⚠️ This frame/section is too large to review automatically${count}. Break it into frames or review manually.`,
+        },
+      },
+    ];
+  }
+
   const summary = `${result.counts.deprecated} deprecated, ${result.counts.detached} detached`;
   const score = result.cleanScore === null ? 'n/a' : `${result.cleanScore}%`;
   return [

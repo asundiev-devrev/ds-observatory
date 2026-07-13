@@ -31,6 +31,34 @@ describe('formatSlackBlocks', () => {
     expect(json).toContain('<@U123>');
     expect(json).toContain('1 deprecated');
   });
+  it('renders tooLarge result with node count and no DS metrics', () => {
+    const tooLarge: ReviewResult = {
+      ...result,
+      findings: [],
+      counts: { deprecated: 0, detached: 0 },
+      cleanScore: null,
+      tooLarge: { nodeCount: 9000 },
+    };
+    const blocks = formatSlackBlocks(tooLarge, '<@U123>');
+    const json = JSON.stringify(blocks);
+    expect(json).toContain('too large to review automatically');
+    expect(json).toContain('9000 nodes');
+    expect(json).not.toContain('0 deprecated');
+  });
+  it('renders tooLarge result without nodeCount (fetch failed) and avoids undefined', () => {
+    const tooLargeNoCount: ReviewResult = {
+      ...result,
+      findings: [],
+      counts: { deprecated: 0, detached: 0 },
+      cleanScore: null,
+      tooLarge: { nodeCount: undefined as unknown as number },
+    };
+    const blocks = formatSlackBlocks(tooLargeNoCount, '<@U123>');
+    const json = JSON.stringify(blocks);
+    expect(json).toContain('too large to review automatically');
+    expect(json).not.toContain('undefined');
+    expect(json).not.toContain('0 deprecated');
+  });
 });
 
 describe('postDigest', () => {

@@ -180,15 +180,18 @@ The **active review** system automatically checks design files when a frame is m
 ### CLI review command
 
 ```bash
-# Manual review of a frame
-npm run dev -- review \
-  --file <file-key> \
-  --node <node-id> \
-  [--version <version-id>]  # pin to a specific version (default: live)
+# Manual review of a frame using a Figma URL
+npm run dev -- review "https://www.figma.com/design/KEY/File?node-id=209-10074"
+
+# Or using fileKey and nodeId (colon-separated)
+npm run dev -- review "KEY 209:10074"
 
 # With emitters
-npm run dev -- review --file ... --node ... --comment  # post Figma comment
-npm run dev -- review --file ... --node ... --slack    # post Slack digest
+npm run dev -- review "KEY 209:10074" --comment  # post Figma comment
+npm run dev -- review "KEY 209:10074" --slack    # post Slack digest
+
+# Override the Figma token (default: FIGMA_ACCESS_TOKEN env var)
+npm run dev -- review "KEY 209:10074" --token figd_...
 ```
 
 The review checks for:

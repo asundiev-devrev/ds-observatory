@@ -19,6 +19,15 @@ function fakeD1() {
               }
               if (sql.includes('INTO comments')) { comments.set(String(args[0]), String(args[1])); return { success: true }; }
               if (sql.startsWith('DELETE FROM comments')) { comments.delete(String(args[0])); return { success: true }; }
+              if (sql.startsWith('DELETE FROM claims')) {
+                // DELETE FROM claims WHERE dedup_key LIKE ?  →  args[0] is the pattern "F:N:%"
+                const pattern = String(args[0]);
+                const prefix = pattern.replace(/%$/, ''); // Strip trailing %
+                for (const key of Array.from(claims)) {
+                  if (key.startsWith(prefix)) claims.delete(key);
+                }
+                return { success: true };
+              }
               return { success: true };
             },
             async first<T>() {
@@ -48,5 +57,17 @@ describe('ReviewStore', () => {
     expect(await store.getCommentId('F', '43:2')).toBe('c1');
     await store.clear('F', '43:2');
     expect(await store.getCommentId('F', '43:2')).toBeNull();
+  });
+  it('clearClaims removes all version claims for a fileKey:nodeId so re-review can happen', async () => {
+    const store = new ReviewStore(fakeD1());
+    // Claim v1 and live
+    expect(await store.claim('F:43:2:v1')).toBe(true);
+    expect(await store.claim('F:43:2:live')).toBe(true);
+    expect(await store.claim('F:43:2:v1')).toBe(false); // already claimed
+    // clearClaims removes the prefix
+    await store.clearClaims('F', '43:2');
+    // Now both can be claimed again (re-review is possible)
+    expect(await store.claim('F:43:2:v1')).toBe(true);
+    expect(await store.claim('F:43:2:live')).toBe(true);
   });
 });

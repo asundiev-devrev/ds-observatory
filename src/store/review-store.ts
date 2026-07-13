@@ -39,4 +39,8 @@ export class ReviewStore {
   async clear(fileKey: string, nodeId: string): Promise<void> {
     await this.db.prepare('DELETE FROM comments WHERE frame_key = ?').bind(frameKey(fileKey, nodeId)).run();
   }
+
+  async clearClaims(fileKey: string, nodeId: string): Promise<void> {
+    await this.db.prepare('DELETE FROM claims WHERE dedup_key LIKE ?').bind(`${fileKey}:${nodeId}:%`).run();
+  }
 }
