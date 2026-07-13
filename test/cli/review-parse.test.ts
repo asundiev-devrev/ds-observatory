@@ -11,6 +11,10 @@ describe('parseFigmaTarget', () => {
     const t = parseFigmaTarget('https://www.figma.com/file/KEY9/Name?node-id=43-2');
     expect(t).toEqual({ fileKey: 'KEY9', nodeId: '43:2' });
   });
+  it('parses multi-segment node-ids', () => {
+    const t = parseFigmaTarget('https://www.figma.com/design/ABC/File?node-id=1-2-3');
+    expect(t).toEqual({ fileKey: 'ABC', nodeId: '1:2:3' });
+  });
   it('parses a raw "fileKey nodeId" pair', () => {
     expect(parseFigmaTarget('KEY9 43:2')).toEqual({ fileKey: 'KEY9', nodeId: '43:2' });
   });

@@ -10,9 +10,9 @@ export function parseFigmaTarget(input: string): { fileKey: string; nodeId: stri
 
   const urlMatch = trimmed.match(/figma\.com\/(?:file|design)\/([A-Za-z0-9]+)/);
   if (urlMatch) {
-    const nodeMatch = trimmed.match(/[?&]node-id=([0-9]+-[0-9]+)/);
+    const nodeMatch = trimmed.match(/[?&]node-id=([0-9]+(?:-[0-9]+)+)/);
     if (!nodeMatch) throw new Error('Figma URL is missing a node-id query parameter.');
-    return { fileKey: urlMatch[1], nodeId: nodeMatch[1].replace('-', ':') };
+    return { fileKey: urlMatch[1], nodeId: nodeMatch[1].replace(/-/g, ':') };
   }
 
   const parts = trimmed.split(/\s+/);
