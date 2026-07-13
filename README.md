@@ -173,6 +173,76 @@ src/
 
 ---
 
+## Active Review
+
+The **active review** system automatically checks design files when a frame is marked "Ready for Dev" in Figma Dev Mode. A review comment lands on the frame and (if there are findings) a digest posts to Slack.
+
+### CLI review command
+
+```bash
+# Manual review of a frame
+npm run dev -- review \
+  --file <file-key> \
+  --node <node-id> \
+  [--version <version-id>]  # pin to a specific version (default: live)
+
+# With emitters
+npm run dev -- review --file ... --node ... --comment  # post Figma comment
+npm run dev -- review --file ... --node ... --slack    # post Slack digest
+```
+
+The review checks for:
+- **Deprecated components** — instances from DLS or older Arcade generations that should be migrated.
+- **Detached components** — frames that look like a known component (by name) but aren't linked to one.
+
+**v2-deferred checks (not yet implemented):**
+- Old-generation components (DLS 0.2 vs. 0.3 within the consolidated library).
+- Raw-value vs. variable-backed properties (requires variable-usage API that doesn't exist in v1).
+
+### Worker architecture
+
+A Cloudflare Worker receives Figma `DEV_MODE_STATUS_UPDATE` webhooks and runs reviews asynchronously:
+
+- **`fetch` handler** — receives webhook, verifies passcode, fast-acks, enqueues review jobs.
+- **`queue` handler** — processes review jobs from the queue, fetches the catalog (once per isolate), runs the review, upserts a Figma comment, and posts a Slack digest (only if there are findings or the frame is too large to review).
+
+Both handlers live in a single Worker entry (`worker/index.ts`) — Cloudflare requires one module with both `fetch` and `queue` exports on the same default object.
+
+The consumer is idempotent: a dedup key (`fileKey:nodeId:version`) is claimed in D1 before running, so bulk "ready for dev" flips won't run the same frame twice. When a frame is marked `COMPLETED` or `NONE`, any stored comment is deleted and the row is cleared.
+
+### Required secrets
+
+Set via `wrangler secret put`:
+- `WEBHOOK_PASSCODE` — shared secret in webhook payload.
+- `FIGMA_BOT_TOKEN` — Figma PAT with comment write access.
+- `SLACK_BOT_TOKEN` — Slack bot token with `chat:write` scope.
+- `FIGMA_SLACK_MAP` — JSON object mapping Figma user IDs to Slack user IDs (for @mentions in digests).
+
+### Deploy
+
+1. **Create the D1 database:**
+   ```bash
+   npx wrangler d1 create ds-review-store
+   npx wrangler d1 execute ds-review-store --file worker/schema.sql
+   ```
+   Paste the returned `database_id` into `wrangler.jsonc`.
+
+2. **Deploy the Worker:**
+   ```bash
+   npx wrangler deploy
+   ```
+
+3. **Register the Figma webhook:**
+   Use the Figma webhooks API to register a `DEV_MODE_STATUS_UPDATE` webhook for your product files, pointing at the deployed Worker URL, with the `WEBHOOK_PASSCODE` in the payload.
+
+4. **Local dev smoke test:**
+   ```bash
+   npx wrangler dev
+   # POST a manual webhook payload to the local URL
+   ```
+
+---
+
 ## License
 
 Internal to DevRev.

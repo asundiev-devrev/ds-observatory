@@ -1,0 +1,25 @@
+{
+  "name": "ds-observatory-review",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-07-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "queues": {
+    "producers": [{ "queue": "ds-review", "binding": "REVIEW_QUEUE" }],
+    "consumers": [{ "queue": "ds-review", "max_batch_size": 5 }]
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "ds-review-store",
+      "database_id": "<fill after wrangler d1 create>"
+    }
+  ],
+  "vars": {
+    "SLACK_CHANNEL": "#ads-core-team",
+    "FIGMA_DS_TEAM_ID": "<ds team id>",
+    "EXCLUDE_LIBRARY_KEYS": "ehnReQbGSZhz5p3sx7Nxzw",
+    "DLS_KEY": "rNeWrFnPT8J903T2jon2oG",
+    "ARCADE_KEY": "loThitjZGdpisyETz5avvz",
+    "ARCADE3_KEY": "a2uKnm88LxRXEWAL1kOqeQ"
+  }
+}
