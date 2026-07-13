@@ -4,6 +4,8 @@ import { collectLibraryAnalytics } from '../collectors/library-analytics.js';
 import { discoverHotFiles } from '../collectors/hot-file-discovery.js';
 import { traverseFileTree } from '../collectors/hot-file-traversal.js';
 import { writeData, snapshotData } from '../store/index.js';
+import { fetchTeamComponentCatalog } from '../collectors/team-catalog.js';
+import type { ComponentInfo } from '../collectors/team-catalog.js';
 import path from 'node:path';
 import type {
   FigmaFileResponse,
@@ -25,76 +27,6 @@ interface CollectOptions {
   window?: string;
 }
 
-interface TeamComponentEntry {
-  key: string;
-  file_key: string;
-  name: string;
-  containing_frame?: {
-    name?: string;
-    containingComponentSet?: { name: string };
-  };
-}
-
-interface TeamComponentsPage {
-  meta: {
-    components: TeamComponentEntry[];
-    cursor?: { after?: number };
-  };
-}
-
-interface ComponentInfo {
-  fileKey: string;
-  displayName: string;
-}
-
-/**
- * Paginate through team components API to build:
- * - key → file_key (for node classification)
- * - key → display name (resolved from component set name for variants)
- */
-async function fetchTeamComponentCatalog(
-  client: FigmaClient,
-  teamId: string,
-  excludeLibraryKeys: string[] = [],
-): Promise<{ keyToFileKey: Map<string, string>; keyToInfo: Map<string, ComponentInfo>; excludedCount: number }> {
-  const keyToFileKey = new Map<string, string>();
-  const keyToInfo = new Map<string, ComponentInfo>();
-  const excludeSet = new Set(excludeLibraryKeys);
-  let excludedCount = 0;
-  let after: number | undefined;
-
-  while (true) {
-    const params: Record<string, string> = { page_size: '100' };
-    if (after !== undefined) params.after = String(after);
-
-    const page = await client.get<TeamComponentsPage>(
-      `/v1/teams/${teamId}/components`,
-      params,
-    );
-
-    for (const comp of page.meta.components) {
-      // Drop staging/test libraries entirely so they never count as DS or feed
-      // detachment detection downstream.
-      if (excludeSet.has(comp.file_key)) {
-        excludedCount++;
-        continue;
-      }
-
-      keyToFileKey.set(comp.key, comp.file_key);
-
-      // Resolve display name: use component set name for variants, own name for standalone
-      const setName = comp.containing_frame?.containingComponentSet?.name;
-      const displayName = setName ?? comp.name;
-
-      keyToInfo.set(comp.key, { fileKey: comp.file_key, displayName });
-    }
-
-    if (page.meta.components.length < 100 || !page.meta.cursor?.after) break;
-    after = page.meta.cursor.after;
-  }
-
-  return { keyToFileKey, keyToInfo, excludedCount };
-}
 
 /** Build library analytics from hot-file traversal data when the Enterprise API is unavailable. */
 function synthesizeLibraryAnalytics(
