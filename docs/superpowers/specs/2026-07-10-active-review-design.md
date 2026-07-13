@@ -180,6 +180,7 @@ interface ReviewResult {
 ### 5.1 Deep-links, version & branch pinning
 
 - **Deep-link:** `https://www.figma.com/file/{fileKey}?node-id={encodeURIComponent(nodeId)}&version-id={version}`. Pinning to the file `version` captured at review time prevents links rotting when the designer keeps editing after the flag flips (the queue budget is seconds-to-minutes).
+- **v1 status:** deferred — the webhook payload carries no version and v1 does not fetch one, so deep-links are unversioned in v1; the plumbing (`result.version` → buildDeepLink) is in place for when a version source is added.
 - **Branches:** `READY_FOR_DEV` can be set on a branch. v1 detects a branch file key and **either reviews it against the branch key or explicitly skips with a logged "branches not supported in v1" notice.** Decision recorded as open question Q4; default = skip + log, since branch review adds join complexity.
 
 ### 5.2 cleanScore (fixes divide-by-zero)

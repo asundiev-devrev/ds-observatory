@@ -4,6 +4,7 @@ import { Command } from 'commander';
 import { collectCommand } from './collect.js';
 import { serveCommand } from './serve.js';
 import { reportCommand } from './report.js';
+import { reviewCommand } from './review.js';
 
 const program = new Command();
 
@@ -32,5 +33,14 @@ program
   .description('Generate a self-contained HTML report')
   .option('-o, --output <path>', 'Output file path', 'ds-observatory-report.html')
   .action(reportCommand);
+
+program
+  .command('review')
+  .description('Review a single frame for DS drift (deprecated + detached)')
+  .argument('<target>', 'Figma frame URL, or "<fileKey> <nodeId>"')
+  .option('--token <token>', 'Figma access token (overrides FIGMA_ACCESS_TOKEN)')
+  .option('--comment', 'Post the summary as a Figma comment on the frame')
+  .option('--slack', 'Post a digest to #ads-core-team (needs SLACK_BOT_TOKEN)')
+  .action((target, options) => reviewCommand(target, options));
 
 program.parse();
